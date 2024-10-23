@@ -83,6 +83,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DAGalvo.cpp" />
+    <ClCompile Include="PropertyMagnifier.cpp" />
     <ClCompile Include="SerialDTRShutter.cpp" />
     <ClCompile Include="AutoFocusStage.cpp" />
     <ClCompile Include="MultiDAStateDevice.cpp" />

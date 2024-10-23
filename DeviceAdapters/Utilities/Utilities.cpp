@@ -56,6 +56,7 @@ const char* g_DeviceNameMultiDAStateDevice = "Multi DA State Device";
 const char* g_DeviceNameAutoFocusStage = "AutoFocus Stage";
 const char* g_DeviceNameStateDeviceShutter = "State Device Shutter";
 const char* g_DeviceNameSerialDTRShutter = "Serial port DTR Shutter";
+const char* g_DeviceNamePropertyMagnifier = "Property as Magnifier";
 
 const char* g_PropertyMinUm = "Stage Low Position(um)";
 const char* g_PropertyMaxUm = "Stage High Position(um)";
@@ -67,6 +68,12 @@ const char* g_InvertLogic = "Invert Logic";
 const char* g_TTLVoltage = "TTL Voltage";
 const char* g_3_3 = "3.3";
 const char* g_5_0 = "5.0";
+
+const char* g_Device = "Device";
+const char* g_Property = "Property";
+const char* g_Magnification = "Magnification";
+const char* g_SetMagnification = "SetMagnification";
+const char* g_NrMagnifications = "NrMagnifications";
 
 
 
@@ -90,6 +97,7 @@ MODULE_API void InitializeModuleData()
    RegisterDevice(g_DeviceNameAutoFocusStage, MM::StageDevice, "AutoFocus offset acting as a Z-stage");
    RegisterDevice(g_DeviceNameStateDeviceShutter, MM::ShutterDevice, "State device used as a shutter");
    RegisterDevice(g_DeviceNameSerialDTRShutter, MM::ShutterDevice, "Serial port DTR used as a shutter");
+   RegisterDevice(g_DeviceNamePropertyMagnifier, MM::MagnifierDevice, "Device Property used as a Magnifier");
 }
 
 MODULE_API MM::Device* CreateDevice(const char* deviceName)                  
@@ -127,6 +135,8 @@ MODULE_API MM::Device* CreateDevice(const char* deviceName)
       return new StateDeviceShutter();
    } else if (strcmp(deviceName, g_DeviceNameSerialDTRShutter) == 0) {
       return new SerialDTRShutter();
+   } else if (strcmp(deviceName, g_DeviceNamePropertyMagnifier) == 0) {
+      return new PropertyMagnifier();
    }
 
    return 0;

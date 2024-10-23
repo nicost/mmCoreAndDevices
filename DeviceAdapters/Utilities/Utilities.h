@@ -30,6 +30,8 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <deque>
+
 
 //////////////////////////////////////////////////////////////////////////////
 // Error codes
@@ -864,6 +866,37 @@ private:
    bool invertedLogic_;
    bool initialized_;
    MM::MMTime lastMoveStartTime_;
+};
+
+
+class PropertyMagnifier : public CMagnifierBase<PropertyMagnifier>
+{
+public:
+   PropertyMagnifier();
+   ~PropertyMagnifier();
+
+   int Initialize();
+
+   int Shutdown();
+  
+   void GetName(char* pszName) const;
+   bool Busy();
+
+
+   int OnNrMagnifications(MM::PropertyBase* pProp, MM::ActionType eAct);
+   int OnDevice(MM::PropertyBase* pProp, MM::ActionType eAct);
+   int OnProperty(MM::PropertyBase* pProp, MM::ActionType eAct);
+   int OnMagnification(MM::PropertyBase* pProp, MM::ActionType eAct);
+   int OnSetMagnification(MM::PropertyBase* pProp, MM::ActionType eAct, long i);
+
+   double GetMagnification();
+
+private:
+   std::string propertyDevice_;
+   std::string propertyName_;
+   std::deque<double> magnifications_;
+   long nrMagnifications_;
+   bool initialized_;
 };
 
 
