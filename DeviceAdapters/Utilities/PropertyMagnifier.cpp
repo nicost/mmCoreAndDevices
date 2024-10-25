@@ -137,6 +137,9 @@ int PropertyMagnifier::OnNrMagnifications(MM::PropertyBase* pProp, MM::ActionTyp
    else if (eAct == MM::AfterSet)
    {
       pProp->Get(nrMagnifications_);
+      magnifications_.clear();
+      auto pos = magnifications_.begin();
+      magnifications_.insert(pos, nrMagnifications_, 1.0);
    }
    return DEVICE_OK;
 }
@@ -189,6 +192,8 @@ int PropertyMagnifier::OnProperty(MM::PropertyBase* pProp, MM::ActionType eAct)
          propertyName_ = propertyName;
          // new property, so our magnification values are no longer valid.
          magnifications_.clear();
+         auto pos = magnifications_.begin();
+         magnifications_.insert(pos, nrMagnifications_, 1.0);
       }
    }
    return DEVICE_OK;
