@@ -23,40 +23,10 @@
 
 using namespace std;
 
-// External names used by the rest of the system
-// to load particular device from the "PriorPureFocus.dll" library
-const char* g_PureFocusDevice = "Prior PureFocus";
 
 // Device name variables
 const char* g_PureFocusDeviceName = "PureFocus";
-const char* g_PureFocusDeviceDescription = "Prior Scientific PureFocus Autofocus System";
 
-///////////////////////////////////////////////////////////////////////////////
-// Exported MMDevice API
-///////////////////////////////////////////////////////////////////////////////
-
-MODULE_API void InitializeModuleData()
-{
-   RegisterDevice(g_PureFocusDevice, MM::AutoFocusDevice, g_PureFocusDeviceDescription);
-}
-
-MODULE_API MM::Device* CreateDevice(const char* deviceName)
-{
-   if (deviceName == 0)
-      return 0;
-
-   if (strcmp(deviceName, g_PureFocusDevice) == 0)
-   {
-      return new CPureFocus();
-   }
-
-   return 0;
-}
-
-MODULE_API void DeleteDevice(MM::Device* pDevice)
-{
-   delete pDevice;
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // CPureFocus implementation
@@ -435,7 +405,7 @@ int CPureFocus::GetResponse(string& resp)
    // Read from serial port until terminator
    const int bufSize = 256;
    char buf[bufSize];
-   unsigned int charsRead = 0;
+   unsigned long charsRead = 0;
 
    MM::MMTime startTime = GetCurrentMMTime();
    unsigned char c = '\0';

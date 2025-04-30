@@ -27,6 +27,7 @@
 #endif
 
 #include "prior.h"
+#include "PureFocus.h"
 #include <cstdio>
 #include <string>
 #include <math.h>
@@ -48,6 +49,8 @@ const char* g_TTL0Name="TTL-0";
 const char* g_TTL1Name="TTL-1";
 const char* g_TTL2Name="TTL-2";
 const char* g_TTL3Name="TTL-3";
+const char* g_PureFocusDevice = "PureFocus";
+const char* g_PureFocusDeviceDescription = "Prior Scientific PureFocus Autofocus System";
 
 //using namespace std;
 
@@ -70,6 +73,7 @@ MODULE_API void InitializeModuleData()
    RegisterDevice(g_TTL1Name, MM::ShutterDevice, "Pro Scan TTL 1");
    RegisterDevice(g_TTL2Name, MM::ShutterDevice, "Pro Scan TTL 2");
    RegisterDevice(g_TTL3Name, MM::ShutterDevice, "Pro Scan TTL 3");
+   RegisterDevice(g_PureFocusDevice, MM::AutoFocusDevice, g_PureFocusDeviceDescription);
 }
 
 MODULE_API MM::Device* CreateDevice(const char* deviceName)
@@ -146,6 +150,10 @@ MODULE_API MM::Device* CreateDevice(const char* deviceName)
    {
       TTLShutter* s = new TTLShutter(g_TTL3Name, 3);
       return s;
+   }
+   else if (strcmp(deviceName, g_PureFocusDevice) == 0)
+   {
+      return new CPureFocus();
    }
 
 
@@ -464,6 +472,7 @@ Wheel::Wheel(const char* name, unsigned id) :
       id_(id), 
       name_(name), 
       curPos_(0), 
+      open_(true),
       busy_(false),
       changedTime_(0.0)
 {
@@ -842,7 +851,7 @@ int XYStage::Initialize()
          const std::string cmd = *it;
          std::string answer;
 
-         int ret = SendSerialCommand(port_.c_str(), cmd.c_str(), "\r");
+         ret = SendSerialCommand(port_.c_str(), cmd.c_str(), "\r");
          if (ret != DEVICE_OK)
             return ret;
          ret = GetSerialAnswer(port_.c_str(), "\r", answer);
@@ -1525,6 +1534,7 @@ bool XYStage::HasCommand(std::string command)
 ZStage::ZStage() :
    initialized_(false),
    port_("Undefined"),
+   curSteps_(0),
    stepSizeUm_(0.1),
    answerTimeoutMs_(1000)
 {
@@ -1587,7 +1597,7 @@ int ZStage::Initialize()
          const std::string cmd = *it;
          std::string answer;
 
-         int ret = SendSerialCommand(port_.c_str(), cmd.c_str(), "\r");
+         ret = SendSerialCommand(port_.c_str(), cmd.c_str(), "\r");
          if (ret != DEVICE_OK)
             return ret;
          ret = GetSerialAnswer(port_.c_str(), "\r", answer);

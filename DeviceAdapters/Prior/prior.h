@@ -45,7 +45,6 @@
 #define ERR_INVALID_MESSAGE			(ERR_OFFSET + 4)
 #define ERR_INVALID_VALUE			(ERR_OFFSET + 8)
 
-int ClearPort(MM::Device& device, MM::Core& core);
 
 class Shutter : public CShutterBase<Shutter>
 {
@@ -208,7 +207,6 @@ public:
 
 
 private:
-   int ExecuteCommand(const std::string& cmd, std::string& response);
    int GetResolution(double& res);
 
    bool initialized_;
@@ -249,11 +247,9 @@ public:
    // action interface
    // ----------------
    int OnPort(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnVersion(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnDelay(MM::PropertyBase* pProp, MM::ActionType eAct);
 
 private:
-   int ExecuteCommand(const std::string& cmd, std::string& response);
    bool HasCommand(std::string command);
    int GetModelAndVersion(std::string& model, std::string& version);
 
