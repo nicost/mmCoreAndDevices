@@ -92,9 +92,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Prior.cpp" />
+    <ClCompile Include="PureFocus.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="prior.h" />
+    <ClInclude Include="PureFocus.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\MMDevice\MMDevice-SharedRuntime.vcxproj">

@@ -18,9 +18,15 @@
     <ClCompile Include="Prior.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PureFocus.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="prior.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PureFocus.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
