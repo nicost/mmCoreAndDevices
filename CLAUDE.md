@@ -149,3 +149,15 @@ Common error message constants are defined in `MMDevice/DeviceBase.h` (e.g., `g_
 - `MMDevice/DeviceBase.h` - Base classes and utility templates
 - `DeviceAdapters/DemoCamera/DemoCamera.cpp` - Reference implementation
 - `buildscripts/VisualStudio/MMCommon.props` - Windows build configuration defaults
+
+## Coding style
+- All indents are 3 spaces (no tab characters).
+- Curly braces open in the same line in Java and in a new line in C++ (see examples).
+- Class names begin with uppercase, and with each word capitalized, e.g. MyFirstClass.
+- Function names use the same convention except that in Java they begin with lowercase and in C++ with uppercase, e.g. MyFunc() in C++ and myFunc() in Java.
+- All variables begin with lower case, e.g. myVar.
+- Class member variables begin with lowercase and end with underscore, e.g. memberVar_.
+- Do not use this->memberVar_ idiom unless it is absolutely necessary to avoid confusion.
+- Static constants in C++: const char* const g_Keyword_Description.
+- Static constants in Java: static final String METADATA_FILE_NAME.
+- if/else, for, and while statements should include curly braces, even if they are only followed by a single line.
