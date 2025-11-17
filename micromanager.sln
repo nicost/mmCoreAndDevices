@@ -528,7 +528,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CairnOptoSpinUCSF", "Device
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EvidentIX85", "DeviceAdapters\EvidentIX85\EvidentIX85.vcxproj", "{E8A5D9F1-4B2C-4E8F-9C1D-6F3A8B7E2D4C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EvidentIX5SSA", "DeviceAdapters\EvidentIX5SSA\EvidentIX5SSA.vcxproj", "{A7F8E9C3-5D4B-4E2F-9A1C-3B7D8E6F4A2C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EvidentIX85XYStage", "DeviceAdapters\EvidentIX85XYStage\EvidentIX85XYStage.vcxproj", "{A7F8E9C3-5D4B-4E2F-9A1C-3B7D8E6F4A2C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
