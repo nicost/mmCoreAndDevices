@@ -4,7 +4,8 @@
       "Bash(cat:*)",
       "Bash(/tmp/find_violations.sh:*)",
       "Bash(python fix_formatting.py:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(git -C \"C:/Users/nstuurman/projects/micro-manager/mmCoreAndDevices/DeviceAdapters/EvidentIX85Win\" status EvidentHubWin.cpp)"
     ],
     "deny": [],
     "ask": []
