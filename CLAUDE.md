@@ -161,3 +161,13 @@ Common error message constants are defined in `MMDevice/DeviceBase.h` (e.g., `g_
 - Static constants in C++: const char* const g_Keyword_Description.
 - Static constants in Java: static final String METADATA_FILE_NAME.
 - if/else, for, and while statements should include curly braces, even if they are only followed by a single line.
+
+## CRITICAL: File Editing on Windows
+MANDATORY: Always use Backslashes on Windows for File Paths
+When using Edit or MultiEdit on WIndows, you MUST use backslashes (\) in the file paths, NOT forward slashes (/).
+WRONG:
+Edit(file_path: "D:/repos/project/file.tsx", ...)
+MultiEdit(file_path: "D:/repos/project/file.tsx", ...)
+CORRECT:
+Edit(file_path: "D:\repos\project\file.tsx", ...)
+MultiEdit(file_path: "D:\repos\project\file.tsx", ...)
