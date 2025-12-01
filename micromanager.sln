@@ -134,8 +134,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Thorlabs", "DeviceAdapters\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HamamatsuHam", "SecretDeviceAdapters\HamamatsuHam\HamamatsuHam.vcxproj", "{1B4CC156-6C0B-4571-AC6D-E6173512684F}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HamamatsuHamU", "SecretDeviceAdapters\HamamatsuHamU\HamamatsuHamU.vcxproj", "{2B4CC156-6C0B-4571-AC6D-E6173512684F}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Stradus", "DeviceAdapters\Vortran\Stradus.vcxproj", "{3A83E7A0-34A5-4304-8D88-00000572AD05}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ThorlabsDCxxxx", "DeviceAdapters\ThorlabsDCxxxx\ThorlabsDCxxxx.vcxproj", "{DEE8AF34-2F99-4AA8-AFDA-948DE44F1DB2}"
@@ -524,7 +522,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openUC2", "DeviceAdapters\O
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PriorPureFocus", "DeviceAdapters\PriorPureFocus\PriorPureFocus.vcxproj", "{BF5D938C-60E9-400E-8BBB-D9D2C058B4FC}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CairnOptoSpinUCSF", "DeviceAdapters\CairnOptoSpinUCSF\CairnOptoSpinUCSF.vcxproj", "{ed59ab6e-b1bc-40c5-bffe-7a79c0f15834}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CairnOptoSpinUCSF", "DeviceAdapters\CairnOptoSpinUCSF\CairnOptoSpinUCSF.vcxproj", "{ED59AB6E-B1BC-40C5-BFFE-7A79C0F15834}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EvidentIX85", "DeviceAdapters\EvidentIX85\EvidentIX85.vcxproj", "{E8A5D9F1-4B2C-4E8F-9C1D-6F3A8B7E2D4C}"
 EndProject
@@ -802,10 +800,6 @@ Global
 		{1B4CC156-6C0B-4571-AC6D-E6173512684F}.Debug|x64.Build.0 = Debug|x64
 		{1B4CC156-6C0B-4571-AC6D-E6173512684F}.Release|x64.ActiveCfg = Release|x64
 		{1B4CC156-6C0B-4571-AC6D-E6173512684F}.Release|x64.Build.0 = Release|x64
-		{2B4CC156-6C0B-4571-AC6D-E6173512684F}.Debug|x64.ActiveCfg = Debug|x64
-		{2B4CC156-6C0B-4571-AC6D-E6173512684F}.Debug|x64.Build.0 = Debug|x64
-		{2B4CC156-6C0B-4571-AC6D-E6173512684F}.Release|x64.ActiveCfg = Release|x64
-		{2B4CC156-6C0B-4571-AC6D-E6173512684F}.Release|x64.Build.0 = Release|x64
 		{3A83E7A0-34A5-4304-8D88-00000572AD05}.Debug|x64.ActiveCfg = Debug|x64
 		{3A83E7A0-34A5-4304-8D88-00000572AD05}.Debug|x64.Build.0 = Debug|x64
 		{3A83E7A0-34A5-4304-8D88-00000572AD05}.Release|x64.ActiveCfg = Release|x64
@@ -1582,10 +1576,10 @@ Global
 		{BF5D938C-60E9-400E-8BBB-D9D2C058B4FC}.Debug|x64.Build.0 = Debug|x64
 		{BF5D938C-60E9-400E-8BBB-D9D2C058B4FC}.Release|x64.ActiveCfg = Release|x64
 		{BF5D938C-60E9-400E-8BBB-D9D2C058B4FC}.Release|x64.Build.0 = Release|x64
-		{ed59ab6e-b1bc-40c5-bffe-7a79c0f15834}.Debug|x64.ActiveCfg = Debug|x64
-		{ed59ab6e-b1bc-40c5-bffe-7a79c0f15834}.Debug|x64.Build.0 = Debug|x64
-		{ed59ab6e-b1bc-40c5-bffe-7a79c0f15834}.Release|x64.ActiveCfg = Release|x64
-		{ed59ab6e-b1bc-40c5-bffe-7a79c0f15834}.Release|x64.Build.0 = Release|x64
+		{ED59AB6E-B1BC-40C5-BFFE-7A79C0F15834}.Debug|x64.ActiveCfg = Debug|x64
+		{ED59AB6E-B1BC-40C5-BFFE-7A79C0F15834}.Debug|x64.Build.0 = Debug|x64
+		{ED59AB6E-B1BC-40C5-BFFE-7A79C0F15834}.Release|x64.ActiveCfg = Release|x64
+		{ED59AB6E-B1BC-40C5-BFFE-7A79C0F15834}.Release|x64.Build.0 = Release|x64
 		{E8A5D9F1-4B2C-4E8F-9C1D-6F3A8B7E2D4C}.Debug|x64.ActiveCfg = Debug|x64
 		{E8A5D9F1-4B2C-4E8F-9C1D-6F3A8B7E2D4C}.Debug|x64.Build.0 = Debug|x64
 		{E8A5D9F1-4B2C-4E8F-9C1D-6F3A8B7E2D4C}.Release|x64.ActiveCfg = Release|x64
@@ -1598,7 +1592,6 @@ Global
 		{A7F8E9C3-5D4B-4E2F-9A1C-3B7D8E6F4A2C}.Debug|x64.Build.0 = Debug|x64
 		{A7F8E9C3-5D4B-4E2F-9A1C-3B7D8E6F4A2C}.Release|x64.ActiveCfg = Release|x64
 		{A7F8E9C3-5D4B-4E2F-9A1C-3B7D8E6F4A2C}.Release|x64.Build.0 = Release|x64
-
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
