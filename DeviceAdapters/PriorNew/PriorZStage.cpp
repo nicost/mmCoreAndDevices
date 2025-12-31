@@ -25,7 +25,7 @@
 #include <cstdlib>
 
 CZStage::CZStage() :
-   PriorPeripheralBase<CStageBase, CZStage>(g_ZStageDeviceName),
+   PriorPeripheralBase<CStageBase<CZStage>>(g_ZStageDeviceName),
    stepSizeUm_(0.1),
    initialized_(false)
 {
@@ -199,7 +199,7 @@ int CZStage::GetLimits(double& lower, double& upper)
    return DEVICE_OK;
 }
 
-int CZStage::Move(double velocity)
+int CZStage::Move(double /* velocity */)
 {
    // Prior doesn't support continuous movement with velocity
    return DEVICE_UNSUPPORTED_COMMAND;

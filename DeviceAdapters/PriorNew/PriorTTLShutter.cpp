@@ -24,7 +24,7 @@
 #include <sstream>
 
 CTTLShutter::CTTLShutter(const char* name, int id) :
-   PriorPeripheralBase<CShutterBase, CTTLShutter>(name),
+   PriorPeripheralBase<CShutterBase<CTTLShutter>>(name),
    name_(name),
    ttlId_(id),
    initialized_(false)
@@ -130,5 +130,26 @@ int CTTLShutter::Fire(double deltaT)
    // Close shutter
    RETURN_ON_MM_ERROR(SetOpen(false));
 
+   return DEVICE_OK;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Action handlers
+//////////////////////////////////////////////////////////////////////////////
+
+int CTTLShutter::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
+{
+   if (eAct == MM::BeforeGet)
+   {
+      bool open;
+      RETURN_ON_MM_ERROR(GetOpen(open));
+      pProp->Set(open ? 1L : 0L);
+   }
+   else if (eAct == MM::AfterSet)
+   {
+      long state;
+      pProp->Get(state);
+      RETURN_ON_MM_ERROR(SetOpen(state != 0));
+   }
    return DEVICE_OK;
 }

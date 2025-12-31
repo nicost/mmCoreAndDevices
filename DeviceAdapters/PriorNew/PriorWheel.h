@@ -25,7 +25,7 @@
 
 #include "PriorPeripheralBase.h"
 
-class CWheel : public PriorPeripheralBase<CStateDeviceBase, CWheel>
+class CWheel : public PriorPeripheralBase<CStateDeviceBase<CWheel>>
 {
 public:
    CWheel(const char* name, int id);

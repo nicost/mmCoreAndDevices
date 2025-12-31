@@ -25,7 +25,7 @@
 
 #include "PriorPeripheralBase.h"
 
-class CNanoZStage : public PriorPeripheralBase<CStageBase, CNanoZStage>
+class CNanoZStage : public PriorPeripheralBase<CStageBase<CNanoZStage>>
 {
 public:
    CNanoZStage();

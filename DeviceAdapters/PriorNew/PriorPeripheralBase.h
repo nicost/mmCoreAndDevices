@@ -31,12 +31,12 @@
 //                       through a PriorHub
 //////////////////////////////////////////////////////////////////////////////
 
-template <template <typename> class TDeviceBase, class UConcreteDevice>
-class PriorPeripheralBase : public PriorBase<TDeviceBase, UConcreteDevice>
+template <class TDeviceBase>
+class PriorPeripheralBase : public PriorBase<TDeviceBase>
 {
 protected:
    PriorPeripheralBase(const char* deviceName, int deviceId = 0) :
-      PriorBase<TDeviceBase, UConcreteDevice>(),
+      PriorBase<TDeviceBase>(),
       hub_(nullptr),
       deviceId_(deviceId)
    {

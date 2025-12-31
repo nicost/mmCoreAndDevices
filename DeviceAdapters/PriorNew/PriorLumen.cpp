@@ -24,7 +24,7 @@
 #include <sstream>
 
 CLumen::CLumen() :
-   PriorPeripheralBase<CShutterBase, CLumen>(g_LumenDeviceName),
+   PriorPeripheralBase<CShutterBase<CLumen>>(g_LumenDeviceName),
    initialized_(false)
 {
    InitializeDefaultErrorMessages();
@@ -136,6 +136,23 @@ int CLumen::Fire(double deltaT)
 //////////////////////////////////////////////////////////////////////////////
 // Action handlers
 //////////////////////////////////////////////////////////////////////////////
+
+int CLumen::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
+{
+   if (eAct == MM::BeforeGet)
+   {
+      bool open;
+      RETURN_ON_MM_ERROR(GetOpen(open));
+      pProp->Set(open ? 1L : 0L);
+   }
+   else if (eAct == MM::AfterSet)
+   {
+      long state;
+      pProp->Get(state);
+      RETURN_ON_MM_ERROR(SetOpen(state != 0));
+   }
+   return DEVICE_OK;
+}
 
 int CLumen::OnIntensity(MM::PropertyBase* pProp, MM::ActionType eAct)
 {

@@ -25,7 +25,7 @@
 
 #include "PriorPeripheralBase.h"
 
-class CXYStage : public PriorPeripheralBase<CXYStageBase, CXYStage>
+class CXYStage : public PriorPeripheralBase<CXYStageBase<CXYStage>>
 {
 public:
    CXYStage();

@@ -25,7 +25,7 @@
 #include <cstdlib>
 
 CNanoZStage::CNanoZStage() :
-   PriorPeripheralBase<CStageBase, CNanoZStage>(g_NanoZStageDeviceName),
+   PriorPeripheralBase<CStageBase<CNanoZStage>>(g_NanoZStageDeviceName),
    stepSizeUm_(0.001),  // Nano stage has finer resolution
    initialized_(false)
 {
@@ -177,7 +177,7 @@ int CNanoZStage::GetLimits(double& lower, double& upper)
    return DEVICE_OK;
 }
 
-int CNanoZStage::Move(double velocity)
+int CNanoZStage::Move(double /* velocity */)
 {
    // Prior doesn't support continuous movement with velocity
    return DEVICE_UNSUPPORTED_COMMAND;

@@ -25,7 +25,7 @@
 
 #include "PriorPeripheralBase.h"
 
-class CTTLShutter : public PriorPeripheralBase<CShutterBase, CTTLShutter>
+class CTTLShutter : public PriorPeripheralBase<CShutterBase<CTTLShutter>>
 {
 public:
    CTTLShutter(const char* name, int id);
@@ -41,6 +41,9 @@ public:
    int SetOpen(bool open = true);
    int GetOpen(bool& open);
    int Fire(double deltaT);
+
+   // Action interface
+   int OnState(MM::PropertyBase* pProp, MM::ActionType eAct);
 
 private:
    std::string name_;

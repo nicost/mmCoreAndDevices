@@ -49,12 +49,6 @@ public:
                          const std::string& expectedPrefix,
                          std::string& response);
 
-protected:
-   // Virtual methods that derived class must implement to access MM DeviceBase functions
-   virtual int PurgeComPortImpl() = 0;
-   virtual int SendSerialCommandImpl(const std::string& command) = 0;
-   virtual int GetSerialAnswerImpl(std::string& answer) = 0;
-
    //////////////////////////////////////////////////////////////////////////////
    // Response parsing utilities (public for use by peripheral devices)
    //////////////////////////////////////////////////////////////////////////////
@@ -85,6 +79,12 @@ protected:
 
    // Unregister a peripheral device
    void UnRegisterPeripheral(const std::string& deviceLabel);
+
+protected:
+   // Virtual methods that derived class must implement to access MM DeviceBase functions
+   virtual int PurgeComPortImpl() = 0;
+   virtual int SendSerialCommandImpl(const std::string& command) = 0;
+   virtual int GetSerialAnswerImpl(std::string& answer) = 0;
 
    // Check if a device is registered
    bool IsDeviceRegistered(const std::string& deviceLabel);

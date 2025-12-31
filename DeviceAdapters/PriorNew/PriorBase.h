@@ -29,8 +29,8 @@
 // PriorBase - Base template class for all Prior devices
 //////////////////////////////////////////////////////////////////////////////
 
-template <template <typename> class TDeviceBase, class UConcreteDevice>
-class PriorBase : public TDeviceBase<UConcreteDevice>
+template <class TDeviceBase>
+class PriorBase : public TDeviceBase
 {
 protected:
    PriorBase() :

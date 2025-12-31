@@ -24,7 +24,7 @@
 #include <sstream>
 
 CWheel::CWheel(const char* name, int id) :
-   PriorPeripheralBase<CStateDeviceBase, CWheel>(name),
+   PriorPeripheralBase<CStateDeviceBase<CWheel>>(name),
    name_(name),
    wheelId_(id),
    numPositions_(6),  // Default to 6 positions

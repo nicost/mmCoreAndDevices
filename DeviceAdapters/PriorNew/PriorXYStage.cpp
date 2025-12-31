@@ -25,7 +25,7 @@
 #include <cstdlib>
 
 CXYStage::CXYStage() :
-   PriorPeripheralBase<CXYStageBase, CXYStage>(g_XYStageDeviceName),
+   PriorPeripheralBase<CXYStageBase<CXYStage>>(g_XYStageDeviceName),
    stepSizeXUm_(0.1),
    stepSizeYUm_(0.1),
    initialized_(false)

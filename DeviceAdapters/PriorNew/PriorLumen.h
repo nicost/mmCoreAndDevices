@@ -25,7 +25,7 @@
 
 #include "PriorPeripheralBase.h"
 
-class CLumen : public PriorPeripheralBase<CShutterBase, CLumen>
+class CLumen : public PriorPeripheralBase<CShutterBase<CLumen>>
 {
 public:
    CLumen();
@@ -43,6 +43,7 @@ public:
    int Fire(double deltaT);
 
    // Action interface
+   int OnState(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnIntensity(MM::PropertyBase* pProp, MM::ActionType eAct);
 
 private:
