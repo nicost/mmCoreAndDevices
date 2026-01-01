@@ -24,8 +24,8 @@
 #include <sstream>
 #include <cstdlib>
 
-CXYStage::CXYStage() :
-   PriorPeripheralBase<CXYStageBase<CXYStage>>(g_XYStageDeviceName),
+XYStage::XYStage() :
+   PriorPeripheralBase<CXYStageBase<XYStage>>(g_XYStageDeviceName),
    stepSizeXUm_(0.1),
    stepSizeYUm_(0.1),
    initialized_(false)
@@ -37,17 +37,17 @@ CXYStage::CXYStage() :
    CreateProperty(MM::g_Keyword_Description, "Prior XY Stage", MM::String, true);
 }
 
-CXYStage::~CXYStage()
+XYStage::~XYStage()
 {
    Shutdown();
 }
 
-void CXYStage::GetName(char* pszName) const
+void XYStage::GetName(char* pszName) const
 {
    CDeviceUtils::CopyLimitedString(pszName, g_XYStageDeviceName);
 }
 
-int CXYStage::Initialize()
+int XYStage::Initialize()
 {
    if (initialized_)
       return DEVICE_OK;
@@ -75,29 +75,29 @@ int CXYStage::Initialize()
    CPropertyAction* pAct;
 
    // Step size X
-   pAct = new CPropertyAction(this, &CXYStage::OnStepSizeX);
+   pAct = new CPropertyAction(this, &XYStage::OnStepSizeX);
    CreateProperty("StepSizeX_um", CDeviceUtils::ConvertToString(stepSizeXUm_),
                   MM::Float, true, pAct);
 
    // Step size Y
-   pAct = new CPropertyAction(this, &CXYStage::OnStepSizeY);
+   pAct = new CPropertyAction(this, &XYStage::OnStepSizeY);
    CreateProperty("StepSizeY_um", CDeviceUtils::ConvertToString(stepSizeYUm_),
                   MM::Float, true, pAct);
 
    // Max Speed
-   pAct = new CPropertyAction(this, &CXYStage::OnMaxSpeed);
+   pAct = new CPropertyAction(this, &XYStage::OnMaxSpeed);
    CreateProperty("MaxSpeed", "20", MM::Integer, false, pAct);
    SetPropertyLimits("MaxSpeed", 1, 100);
 
    // Acceleration
-   pAct = new CPropertyAction(this, &CXYStage::OnAcceleration);
+   pAct = new CPropertyAction(this, &XYStage::OnAcceleration);
    CreateProperty("Acceleration", "20", MM::Integer, false, pAct);
    SetPropertyLimits("Acceleration", 1, 100);
 
    // SCurve (if supported)
    if (HasCommand("SCS"))
    {
-      pAct = new CPropertyAction(this, &CXYStage::OnSCurve);
+      pAct = new CPropertyAction(this, &XYStage::OnSCurve);
       CreateProperty("SCurve", "20", MM::Integer, false, pAct);
       SetPropertyLimits("SCurve", 1, 100);
    }
@@ -106,7 +106,7 @@ int CXYStage::Initialize()
    return DEVICE_OK;
 }
 
-int CXYStage::Shutdown()
+int XYStage::Shutdown()
 {
    if (!initialized_)
       return DEVICE_OK;
@@ -115,7 +115,7 @@ int CXYStage::Shutdown()
    return DEVICE_OK;
 }
 
-bool CXYStage::Busy()
+bool XYStage::Busy()
 {
    if (!initialized_)
       return false;
@@ -140,7 +140,7 @@ bool CXYStage::Busy()
 // XYStage API
 //////////////////////////////////////////////////////////////////////////////
 
-int CXYStage::SetPositionSteps(long x, long y)
+int XYStage::SetPositionSteps(long x, long y)
 {
    std::ostringstream command;
    command << "G," << x << "," << y;
@@ -157,7 +157,7 @@ int CXYStage::SetPositionSteps(long x, long y)
    return ERR_PRIOR_UNRECOGNIZED_ANSWER;
 }
 
-int CXYStage::SetRelativePositionSteps(long x, long y)
+int XYStage::SetRelativePositionSteps(long x, long y)
 {
    std::ostringstream command;
    command << "GR," << x << "," << y;
@@ -174,14 +174,14 @@ int CXYStage::SetRelativePositionSteps(long x, long y)
    return ERR_PRIOR_UNRECOGNIZED_ANSWER;
 }
 
-int CXYStage::GetPositionSteps(long& x, long& y)
+int XYStage::GetPositionSteps(long& x, long& y)
 {
    RETURN_ON_MM_ERROR(GetPositionStepsSingle('X', x));
    RETURN_ON_MM_ERROR(GetPositionStepsSingle('Y', y));
    return DEVICE_OK;
 }
 
-int CXYStage::Home()
+int XYStage::Home()
 {
    // Send home command (SIS)
    std::string response;
@@ -196,7 +196,7 @@ int CXYStage::Home()
    return ERR_PRIOR_UNRECOGNIZED_ANSWER;
 }
 
-int CXYStage::Stop()
+int XYStage::Stop()
 {
    // Send halt command (K)
    std::string response;
@@ -211,7 +211,7 @@ int CXYStage::Stop()
    return ERR_PRIOR_UNRECOGNIZED_ANSWER;
 }
 
-int CXYStage::SetOrigin()
+int XYStage::SetOrigin()
 {
    // Set origin to current position
    std::string response;
@@ -226,7 +226,7 @@ int CXYStage::SetOrigin()
    return ERR_PRIOR_UNRECOGNIZED_ANSWER;
 }
 
-int CXYStage::GetLimitsUm(double& xMin, double& xMax, double& yMin, double& yMax)
+int XYStage::GetLimitsUm(double& xMin, double& xMax, double& yMin, double& yMax)
 {
    // Prior doesn't report limits, return large values
    xMin = -100000.0;
@@ -236,7 +236,7 @@ int CXYStage::GetLimitsUm(double& xMin, double& xMax, double& yMin, double& yMax
    return DEVICE_OK;
 }
 
-int CXYStage::GetStepLimits(long& xMin, long& xMax, long& yMin, long& yMax)
+int XYStage::GetStepLimits(long& xMin, long& xMax, long& yMin, long& yMax)
 {
    // Prior doesn't report limits, return large values
    xMin = -1000000;
@@ -246,7 +246,7 @@ int CXYStage::GetStepLimits(long& xMin, long& xMax, long& yMin, long& yMax)
    return DEVICE_OK;
 }
 
-int CXYStage::IsXYStageSequenceable(bool& isSequenceable) const
+int XYStage::IsXYStageSequenceable(bool& isSequenceable) const
 {
    // Prior doesn't support hardware sequencing
    isSequenceable = false;
@@ -257,7 +257,7 @@ int CXYStage::IsXYStageSequenceable(bool& isSequenceable) const
 // Helper methods
 //////////////////////////////////////////////////////////////////////////////
 
-int CXYStage::GetPositionStepsSingle(char axis, long& steps)
+int XYStage::GetPositionStepsSingle(char axis, long& steps)
 {
    std::string command = "P";
    command += axis;
@@ -271,7 +271,7 @@ int CXYStage::GetPositionStepsSingle(char axis, long& steps)
    return DEVICE_OK;
 }
 
-int CXYStage::GetResolution(double& resX, double& resY)
+int XYStage::GetResolution(double& resX, double& resY)
 {
    // Query X resolution
    std::string response;
@@ -285,7 +285,7 @@ int CXYStage::GetResolution(double& resX, double& resY)
    return DEVICE_OK;
 }
 
-bool CXYStage::HasCommand(const std::string& command)
+bool XYStage::HasCommand(const std::string& command)
 {
    // Try the command and see if we get an error
    std::string response;
@@ -302,7 +302,7 @@ bool CXYStage::HasCommand(const std::string& command)
 // Action handlers
 //////////////////////////////////////////////////////////////////////////////
 
-int CXYStage::OnStepSizeX(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XYStage::OnStepSizeX(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -311,7 +311,7 @@ int CXYStage::OnStepSizeX(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CXYStage::OnStepSizeY(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XYStage::OnStepSizeY(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -320,7 +320,7 @@ int CXYStage::OnStepSizeY(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CXYStage::OnMaxSpeed(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XYStage::OnMaxSpeed(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -355,7 +355,7 @@ int CXYStage::OnMaxSpeed(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CXYStage::OnAcceleration(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XYStage::OnAcceleration(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -390,7 +390,7 @@ int CXYStage::OnAcceleration(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CXYStage::OnSCurve(MM::PropertyBase* pProp, MM::ActionType eAct)
+int XYStage::OnSCurve(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {

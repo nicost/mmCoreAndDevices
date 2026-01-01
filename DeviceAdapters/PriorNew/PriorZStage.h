@@ -25,11 +25,11 @@
 
 #include "PriorPeripheralBase.h"
 
-class CZStage : public PriorPeripheralBase<CStageBase<CZStage>>
+class ZStage : public PriorPeripheralBase<CStageBase<ZStage>>
 {
 public:
-   CZStage();
-   ~CZStage();
+   ZStage();
+   ~ZStage();
 
    // MMDevice API
    int Initialize();

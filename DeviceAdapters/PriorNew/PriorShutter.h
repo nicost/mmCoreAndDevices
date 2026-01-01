@@ -25,11 +25,11 @@
 
 #include "PriorPeripheralBase.h"
 
-class CShutter : public PriorPeripheralBase<CShutterBase<CShutter>>
+class Shutter : public PriorPeripheralBase<CShutterBase<Shutter>>
 {
 public:
-   CShutter(const char* name, int id);
-   ~CShutter();
+   Shutter(const char* name, int id);
+   ~Shutter();
 
    // MMDevice API
    int Initialize();

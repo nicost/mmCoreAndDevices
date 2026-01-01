@@ -25,11 +25,11 @@
 
 #include "PriorPeripheralBase.h"
 
-class CNanoZStage : public PriorPeripheralBase<CStageBase<CNanoZStage>>
+class NanoZStage : public PriorPeripheralBase<CStageBase<NanoZStage>>
 {
 public:
-   CNanoZStage();
-   ~CNanoZStage();
+   NanoZStage();
+   ~NanoZStage();
 
    // MMDevice API
    int Initialize();

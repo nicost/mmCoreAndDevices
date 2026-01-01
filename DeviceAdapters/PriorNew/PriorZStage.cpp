@@ -24,8 +24,8 @@
 #include <sstream>
 #include <cstdlib>
 
-CZStage::CZStage() :
-   PriorPeripheralBase<CStageBase<CZStage>>(g_ZStageDeviceName),
+ZStage::ZStage() :
+   PriorPeripheralBase<CStageBase<ZStage>>(g_ZStageDeviceName),
    stepSizeUm_(0.1),
    initialized_(false)
 {
@@ -36,17 +36,17 @@ CZStage::CZStage() :
    CreateProperty(MM::g_Keyword_Description, "Prior Z Stage", MM::String, true);
 }
 
-CZStage::~CZStage()
+ZStage::~ZStage()
 {
    Shutdown();
 }
 
-void CZStage::GetName(char* pszName) const
+void ZStage::GetName(char* pszName) const
 {
    CDeviceUtils::CopyLimitedString(pszName, g_ZStageDeviceName);
 }
 
-int CZStage::Initialize()
+int ZStage::Initialize()
 {
    if (initialized_)
       return DEVICE_OK;
@@ -70,17 +70,17 @@ int CZStage::Initialize()
    CPropertyAction* pAct;
 
    // Step size
-   pAct = new CPropertyAction(this, &CZStage::OnStepSize);
+   pAct = new CPropertyAction(this, &ZStage::OnStepSize);
    CreateProperty("StepSize_um", CDeviceUtils::ConvertToString(stepSizeUm_),
                   MM::Float, true, pAct);
 
    // Max Speed
-   pAct = new CPropertyAction(this, &CZStage::OnMaxSpeed);
+   pAct = new CPropertyAction(this, &ZStage::OnMaxSpeed);
    CreateProperty("MaxSpeed", "20", MM::Integer, false, pAct);
    SetPropertyLimits("MaxSpeed", 1, 100);
 
    // Acceleration
-   pAct = new CPropertyAction(this, &CZStage::OnAcceleration);
+   pAct = new CPropertyAction(this, &ZStage::OnAcceleration);
    CreateProperty("Acceleration", "20", MM::Integer, false, pAct);
    SetPropertyLimits("Acceleration", 1, 100);
 
@@ -88,7 +88,7 @@ int CZStage::Initialize()
    return DEVICE_OK;
 }
 
-int CZStage::Shutdown()
+int ZStage::Shutdown()
 {
    if (!initialized_)
       return DEVICE_OK;
@@ -97,7 +97,7 @@ int CZStage::Shutdown()
    return DEVICE_OK;
 }
 
-bool CZStage::Busy()
+bool ZStage::Busy()
 {
    if (!initialized_)
       return false;
@@ -122,13 +122,13 @@ bool CZStage::Busy()
 // Stage API
 //////////////////////////////////////////////////////////////////////////////
 
-int CZStage::SetPositionUm(double pos)
+int ZStage::SetPositionUm(double pos)
 {
    long steps = (long)(pos / stepSizeUm_ + 0.5);
    return SetPositionSteps(steps);
 }
 
-int CZStage::GetPositionUm(double& pos)
+int ZStage::GetPositionUm(double& pos)
 {
    long steps;
    RETURN_ON_MM_ERROR(GetPositionSteps(steps));
@@ -136,7 +136,7 @@ int CZStage::GetPositionUm(double& pos)
    return DEVICE_OK;
 }
 
-int CZStage::SetPositionSteps(long steps)
+int ZStage::SetPositionSteps(long steps)
 {
    // Get current position
    long current;
@@ -165,7 +165,7 @@ int CZStage::SetPositionSteps(long steps)
    return ERR_PRIOR_UNRECOGNIZED_ANSWER;
 }
 
-int CZStage::GetPositionSteps(long& steps)
+int ZStage::GetPositionSteps(long& steps)
 {
    std::string response;
    RETURN_ON_MM_ERROR(hub_->QueryCommand("PZ", response));
@@ -176,7 +176,7 @@ int CZStage::GetPositionSteps(long& steps)
    return DEVICE_OK;
 }
 
-int CZStage::SetOrigin()
+int ZStage::SetOrigin()
 {
    // Set origin to current position
    std::string response;
@@ -191,7 +191,7 @@ int CZStage::SetOrigin()
    return ERR_PRIOR_UNRECOGNIZED_ANSWER;
 }
 
-int CZStage::GetLimits(double& lower, double& upper)
+int ZStage::GetLimits(double& lower, double& upper)
 {
    // Prior doesn't report limits, return large values
    lower = -100000.0;
@@ -199,13 +199,13 @@ int CZStage::GetLimits(double& lower, double& upper)
    return DEVICE_OK;
 }
 
-int CZStage::Move(double /* velocity */)
+int ZStage::Move(double /* velocity */)
 {
    // Prior doesn't support continuous movement with velocity
    return DEVICE_UNSUPPORTED_COMMAND;
 }
 
-int CZStage::Stop()
+int ZStage::Stop()
 {
    // Send halt command (K)
    std::string response;
@@ -220,7 +220,7 @@ int CZStage::Stop()
    return ERR_PRIOR_UNRECOGNIZED_ANSWER;
 }
 
-int CZStage::Home()
+int ZStage::Home()
 {
    // Send home command (SIS)
    std::string response;
@@ -235,7 +235,7 @@ int CZStage::Home()
    return ERR_PRIOR_UNRECOGNIZED_ANSWER;
 }
 
-int CZStage::IsStageSequenceable(bool& isSequenceable) const
+int ZStage::IsStageSequenceable(bool& isSequenceable) const
 {
    // Prior doesn't support hardware sequencing
    isSequenceable = false;
@@ -246,7 +246,7 @@ int CZStage::IsStageSequenceable(bool& isSequenceable) const
 // Helper methods
 //////////////////////////////////////////////////////////////////////////////
 
-int CZStage::GetResolution(double& res)
+int ZStage::GetResolution(double& res)
 {
    // Query Z resolution
    std::string response;
@@ -256,7 +256,7 @@ int CZStage::GetResolution(double& res)
    return DEVICE_OK;
 }
 
-bool CZStage::HasCommand(const std::string& command)
+bool ZStage::HasCommand(const std::string& command)
 {
    // Try the command and see if we get an error
    std::string response;
@@ -273,7 +273,7 @@ bool CZStage::HasCommand(const std::string& command)
 // Action handlers
 //////////////////////////////////////////////////////////////////////////////
 
-int CZStage::OnStepSize(MM::PropertyBase* pProp, MM::ActionType eAct)
+int ZStage::OnStepSize(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -282,7 +282,7 @@ int CZStage::OnStepSize(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CZStage::OnMaxSpeed(MM::PropertyBase* pProp, MM::ActionType eAct)
+int ZStage::OnMaxSpeed(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
@@ -317,7 +317,7 @@ int CZStage::OnMaxSpeed(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CZStage::OnAcceleration(MM::PropertyBase* pProp, MM::ActionType eAct)
+int ZStage::OnAcceleration(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {

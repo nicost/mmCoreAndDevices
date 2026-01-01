@@ -81,43 +81,43 @@ MODULE_API MM::Device* CreateDevice(const char* deviceName)
    // Stages
    else if (name == g_XYStageDeviceName)
    {
-      return new CXYStage();
+      return new XYStage();
    }
    else if (name == g_ZStageDeviceName)
    {
-      return new CZStage();
+      return new ZStage();
    }
    else if (name == g_NanoZStageDeviceName)
    {
-      return new CNanoZStage();
+      return new NanoZStage();
    }
 
    // Shutters
    else if (name == g_Shutter1DeviceName)
    {
-      return new CShutter(g_Shutter1DeviceName, 1);
+      return new Shutter(g_Shutter1DeviceName, 1);
    }
    else if (name == g_Shutter2DeviceName)
    {
-      return new CShutter(g_Shutter2DeviceName, 2);
+      return new Shutter(g_Shutter2DeviceName, 2);
    }
    else if (name == g_Shutter3DeviceName)
    {
-      return new CShutter(g_Shutter3DeviceName, 3);
+      return new Shutter(g_Shutter3DeviceName, 3);
    }
 
    // Filter wheels
    else if (name == g_Wheel1DeviceName)
    {
-      return new CWheel(g_Wheel1DeviceName, 1);
+      return new Wheel(g_Wheel1DeviceName, 1);
    }
    else if (name == g_Wheel2DeviceName)
    {
-      return new CWheel(g_Wheel2DeviceName, 2);
+      return new Wheel(g_Wheel2DeviceName, 2);
    }
    else if (name == g_Wheel3DeviceName)
    {
-      return new CWheel(g_Wheel3DeviceName, 3);
+      return new Wheel(g_Wheel3DeviceName, 3);
    }
 
    // Lumen
@@ -129,19 +129,19 @@ MODULE_API MM::Device* CreateDevice(const char* deviceName)
    // TTL Shutters
    else if (name == g_TTL0DeviceName)
    {
-      return new CTTLShutter(g_TTL0DeviceName, 0);
+      return new TTLShutter(g_TTL0DeviceName, 0);
    }
    else if (name == g_TTL1DeviceName)
    {
-      return new CTTLShutter(g_TTL1DeviceName, 1);
+      return new TTLShutter(g_TTL1DeviceName, 1);
    }
    else if (name == g_TTL2DeviceName)
    {
-      return new CTTLShutter(g_TTL2DeviceName, 2);
+      return new TTLShutter(g_TTL2DeviceName, 2);
    }
    else if (name == g_TTL3DeviceName)
    {
-      return new CTTLShutter(g_TTL3DeviceName, 3);
+      return new TTLShutter(g_TTL3DeviceName, 3);
    }
 
    return nullptr;

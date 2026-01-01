@@ -23,8 +23,8 @@
 #include "PriorTTLShutter.h"
 #include <sstream>
 
-CTTLShutter::CTTLShutter(const char* name, int id) :
-   PriorPeripheralBase<CShutterBase<CTTLShutter>>(name),
+TTLShutter::TTLShutter(const char* name, int id) :
+   PriorPeripheralBase<CShutterBase<TTLShutter>>(name),
    name_(name),
    ttlId_(id),
    initialized_(false)
@@ -38,17 +38,17 @@ CTTLShutter::CTTLShutter(const char* name, int id) :
    CreateProperty(MM::g_Keyword_Description, desc.str().c_str(), MM::String, true);
 }
 
-CTTLShutter::~CTTLShutter()
+TTLShutter::~TTLShutter()
 {
    Shutdown();
 }
 
-void CTTLShutter::GetName(char* pszName) const
+void TTLShutter::GetName(char* pszName) const
 {
    CDeviceUtils::CopyLimitedString(pszName, name_.c_str());
 }
 
-int CTTLShutter::Initialize()
+int TTLShutter::Initialize()
 {
    if (initialized_)
       return DEVICE_OK;
@@ -58,7 +58,7 @@ int CTTLShutter::Initialize()
    RETURN_ON_MM_ERROR(PeripheralInitialize());
 
    // Create state property
-   CPropertyAction* pAct = new CPropertyAction(this, &CTTLShutter::OnState);
+   CPropertyAction* pAct = new CPropertyAction(this, &TTLShutter::OnState);
    CreateProperty(MM::g_Keyword_State, "0", MM::Integer, false, pAct);
    AddAllowedValue(MM::g_Keyword_State, "0");  // Closed
    AddAllowedValue(MM::g_Keyword_State, "1");  // Open
@@ -67,7 +67,7 @@ int CTTLShutter::Initialize()
    return DEVICE_OK;
 }
 
-int CTTLShutter::Shutdown()
+int TTLShutter::Shutdown()
 {
    if (!initialized_)
       return DEVICE_OK;
@@ -76,7 +76,7 @@ int CTTLShutter::Shutdown()
    return DEVICE_OK;
 }
 
-bool CTTLShutter::Busy()
+bool TTLShutter::Busy()
 {
    // TTL shutters are not busy (instantaneous operation)
    return false;
@@ -86,7 +86,7 @@ bool CTTLShutter::Busy()
 // Shutter API
 //////////////////////////////////////////////////////////////////////////////
 
-int CTTLShutter::SetOpen(bool open)
+int TTLShutter::SetOpen(bool open)
 {
    std::ostringstream command;
    command << "TTL," << ttlId_ << "," << (open ? "1" : "0");  // 1=high/open, 0=low/closed
@@ -103,7 +103,7 @@ int CTTLShutter::SetOpen(bool open)
    return ERR_PRIOR_UNRECOGNIZED_ANSWER;
 }
 
-int CTTLShutter::GetOpen(bool& open)
+int TTLShutter::GetOpen(bool& open)
 {
    std::ostringstream command;
    command << "TTL," << ttlId_;
@@ -119,7 +119,7 @@ int CTTLShutter::GetOpen(bool& open)
    return DEVICE_OK;
 }
 
-int CTTLShutter::Fire(double deltaT)
+int TTLShutter::Fire(double deltaT)
 {
    // Open shutter
    RETURN_ON_MM_ERROR(SetOpen(true));
@@ -137,7 +137,7 @@ int CTTLShutter::Fire(double deltaT)
 // Action handlers
 //////////////////////////////////////////////////////////////////////////////
 
-int CTTLShutter::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
+int TTLShutter::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {

@@ -23,8 +23,8 @@
 #include "PriorWheel.h"
 #include <sstream>
 
-CWheel::CWheel(const char* name, int id) :
-   PriorPeripheralBase<CStateDeviceBase<CWheel>>(name),
+Wheel::Wheel(const char* name, int id) :
+   PriorPeripheralBase<CStateDeviceBase<Wheel>>(name),
    name_(name),
    wheelId_(id),
    numPositions_(6),  // Default to 6 positions
@@ -39,17 +39,17 @@ CWheel::CWheel(const char* name, int id) :
    CreateProperty(MM::g_Keyword_Description, desc.str().c_str(), MM::String, true);
 }
 
-CWheel::~CWheel()
+Wheel::~Wheel()
 {
    Shutdown();
 }
 
-void CWheel::GetName(char* pszName) const
+void Wheel::GetName(char* pszName) const
 {
    CDeviceUtils::CopyLimitedString(pszName, name_.c_str());
 }
 
-int CWheel::Initialize()
+int Wheel::Initialize()
 {
    if (initialized_)
       return DEVICE_OK;
@@ -67,12 +67,12 @@ int CWheel::Initialize()
    CPropertyAction* pAct;
 
    // Number of positions
-   pAct = new CPropertyAction(this, &CWheel::OnNumPositions);
+   pAct = new CPropertyAction(this, &Wheel::OnNumPositions);
    CreateProperty("Number of Positions", CDeviceUtils::ConvertToString((long)numPositions_),
                   MM::Integer, true, pAct);
 
    // State (position)
-   pAct = new CPropertyAction(this, &CWheel::OnState);
+   pAct = new CPropertyAction(this, &Wheel::OnState);
    CreateProperty(MM::g_Keyword_State, "0", MM::Integer, false, pAct);
    SetPropertyLimits(MM::g_Keyword_State, 0, numPositions_ - 1);
 
@@ -92,7 +92,7 @@ int CWheel::Initialize()
    return DEVICE_OK;
 }
 
-int CWheel::Shutdown()
+int Wheel::Shutdown()
 {
    if (!initialized_)
       return DEVICE_OK;
@@ -101,7 +101,7 @@ int CWheel::Shutdown()
    return DEVICE_OK;
 }
 
-bool CWheel::Busy()
+bool Wheel::Busy()
 {
    if (!initialized_)
       return false;
@@ -127,10 +127,10 @@ bool CWheel::Busy()
 // Helper methods
 //////////////////////////////////////////////////////////////////////////////
 
-int CWheel::GetNumberOfPositions()
+int Wheel::GetNumberOfPositions()
 {
    std::ostringstream command;
-   command << "7," << wheelId_ << ",?";
+   command << "FPW " << wheelId_;
 
    std::string response;
    RETURN_ON_MM_ERROR(hub_->QueryCommand(command.str(), response));
@@ -147,13 +147,13 @@ int CWheel::GetNumberOfPositions()
 // Action handlers
 //////////////////////////////////////////////////////////////////////////////
 
-int CWheel::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
+int Wheel::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
       // Query current position
       std::ostringstream command;
-      command << "7," << wheelId_;
+      command << "7," << wheelId_ << ",F";
 
       std::string response;
       RETURN_ON_MM_ERROR(hub_->QueryCommand(command.str(), response));
@@ -183,7 +183,7 @@ int CWheel::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
    return DEVICE_OK;
 }
 
-int CWheel::OnNumPositions(MM::PropertyBase* pProp, MM::ActionType eAct)
+int Wheel::OnNumPositions(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {

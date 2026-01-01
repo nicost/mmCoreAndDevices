@@ -24,8 +24,8 @@
 #include <sstream>
 #include <cstdlib>
 
-CNanoZStage::CNanoZStage() :
-   PriorPeripheralBase<CStageBase<CNanoZStage>>(g_NanoZStageDeviceName),
+NanoZStage::NanoZStage() :
+   PriorPeripheralBase<CStageBase<NanoZStage>>(g_NanoZStageDeviceName),
    stepSizeUm_(0.001),  // Nano stage has finer resolution
    initialized_(false)
 {
@@ -36,17 +36,17 @@ CNanoZStage::CNanoZStage() :
    CreateProperty(MM::g_Keyword_Description, "Prior Nano Z Stage", MM::String, true);
 }
 
-CNanoZStage::~CNanoZStage()
+NanoZStage::~NanoZStage()
 {
    Shutdown();
 }
 
-void CNanoZStage::GetName(char* pszName) const
+void NanoZStage::GetName(char* pszName) const
 {
    CDeviceUtils::CopyLimitedString(pszName, g_NanoZStageDeviceName);
 }
 
-int CNanoZStage::Initialize()
+int NanoZStage::Initialize()
 {
    if (initialized_)
       return DEVICE_OK;
@@ -70,7 +70,7 @@ int CNanoZStage::Initialize()
    CPropertyAction* pAct;
 
    // Step size
-   pAct = new CPropertyAction(this, &CNanoZStage::OnStepSize);
+   pAct = new CPropertyAction(this, &NanoZStage::OnStepSize);
    CreateProperty("StepSize_um", CDeviceUtils::ConvertToString(stepSizeUm_),
                   MM::Float, true, pAct);
 
@@ -78,7 +78,7 @@ int CNanoZStage::Initialize()
    return DEVICE_OK;
 }
 
-int CNanoZStage::Shutdown()
+int NanoZStage::Shutdown()
 {
    if (!initialized_)
       return DEVICE_OK;
@@ -87,7 +87,7 @@ int CNanoZStage::Shutdown()
    return DEVICE_OK;
 }
 
-bool CNanoZStage::Busy()
+bool NanoZStage::Busy()
 {
    if (!initialized_)
       return false;
@@ -112,13 +112,13 @@ bool CNanoZStage::Busy()
 // Stage API
 //////////////////////////////////////////////////////////////////////////////
 
-int CNanoZStage::SetPositionUm(double pos)
+int NanoZStage::SetPositionUm(double pos)
 {
    long steps = (long)(pos / stepSizeUm_ + 0.5);
    return SetPositionSteps(steps);
 }
 
-int CNanoZStage::GetPositionUm(double& pos)
+int NanoZStage::GetPositionUm(double& pos)
 {
    long steps;
    RETURN_ON_MM_ERROR(GetPositionSteps(steps));
@@ -126,7 +126,7 @@ int CNanoZStage::GetPositionUm(double& pos)
    return DEVICE_OK;
 }
 
-int CNanoZStage::SetPositionSteps(long steps)
+int NanoZStage::SetPositionSteps(long steps)
 {
    std::ostringstream command;
    command << "VZ," << steps;
@@ -143,7 +143,7 @@ int CNanoZStage::SetPositionSteps(long steps)
    return ERR_PRIOR_UNRECOGNIZED_ANSWER;
 }
 
-int CNanoZStage::GetPositionSteps(long& steps)
+int NanoZStage::GetPositionSteps(long& steps)
 {
    std::string response;
    RETURN_ON_MM_ERROR(hub_->QueryCommand("VZ", response));
@@ -154,7 +154,7 @@ int CNanoZStage::GetPositionSteps(long& steps)
    return DEVICE_OK;
 }
 
-int CNanoZStage::SetOrigin()
+int NanoZStage::SetOrigin()
 {
    // Set origin to current position
    std::string response;
@@ -169,7 +169,7 @@ int CNanoZStage::SetOrigin()
    return ERR_PRIOR_UNRECOGNIZED_ANSWER;
 }
 
-int CNanoZStage::GetLimits(double& lower, double& upper)
+int NanoZStage::GetLimits(double& lower, double& upper)
 {
    // Prior doesn't report limits, return typical nano stage range
    lower = -100.0;  // Nano stages typically have smaller range
@@ -177,13 +177,13 @@ int CNanoZStage::GetLimits(double& lower, double& upper)
    return DEVICE_OK;
 }
 
-int CNanoZStage::Move(double /* velocity */)
+int NanoZStage::Move(double /* velocity */)
 {
    // Prior doesn't support continuous movement with velocity
    return DEVICE_UNSUPPORTED_COMMAND;
 }
 
-int CNanoZStage::Stop()
+int NanoZStage::Stop()
 {
    // Send halt command (K)
    std::string response;
@@ -198,13 +198,13 @@ int CNanoZStage::Stop()
    return ERR_PRIOR_UNRECOGNIZED_ANSWER;
 }
 
-int CNanoZStage::Home()
+int NanoZStage::Home()
 {
    // Nano Z stage may not support homing
    return DEVICE_UNSUPPORTED_COMMAND;
 }
 
-int CNanoZStage::IsStageSequenceable(bool& isSequenceable) const
+int NanoZStage::IsStageSequenceable(bool& isSequenceable) const
 {
    // Prior doesn't support hardware sequencing
    isSequenceable = false;
@@ -215,7 +215,7 @@ int CNanoZStage::IsStageSequenceable(bool& isSequenceable) const
 // Helper methods
 //////////////////////////////////////////////////////////////////////////////
 
-int CNanoZStage::GetResolution(double& res)
+int NanoZStage::GetResolution(double& res)
 {
    // Query Nano Z resolution
    std::string response;
@@ -229,7 +229,7 @@ int CNanoZStage::GetResolution(double& res)
 // Action handlers
 //////////////////////////////////////////////////////////////////////////////
 
-int CNanoZStage::OnStepSize(MM::PropertyBase* pProp, MM::ActionType eAct)
+int NanoZStage::OnStepSize(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {

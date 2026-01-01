@@ -25,11 +25,11 @@
 
 #include "PriorPeripheralBase.h"
 
-class CWheel : public PriorPeripheralBase<CStateDeviceBase<CWheel>>
+class Wheel : public PriorPeripheralBase<CStateDeviceBase<Wheel>>
 {
 public:
-   CWheel(const char* name, int id);
-   ~CWheel();
+   Wheel(const char* name, int id);
+   ~Wheel();
 
    // MMDevice API
    int Initialize();

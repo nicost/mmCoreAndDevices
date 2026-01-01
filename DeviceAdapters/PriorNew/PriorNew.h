@@ -95,8 +95,6 @@
 // Property names
 //////////////////////////////////////////////////////////////////////////////
 
-#define g_PropName_SerialCommand         "SerialCommand"
-#define g_PropName_SerialResponse        "SerialResponse"
 #define g_PropName_FirmwareVersion       "FirmwareVersion"
 #define g_PropName_ControllerModel       "ControllerModel"
 

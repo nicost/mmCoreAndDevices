@@ -25,11 +25,11 @@
 
 #include "PriorPeripheralBase.h"
 
-class CXYStage : public PriorPeripheralBase<CXYStageBase<CXYStage>>
+class XYStage : public PriorPeripheralBase<CXYStageBase<XYStage>>
 {
 public:
-   CXYStage();
-   ~CXYStage();
+   XYStage();
+   ~XYStage();
 
    // MMDevice API
    int Initialize();

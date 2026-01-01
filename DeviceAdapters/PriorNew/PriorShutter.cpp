@@ -23,8 +23,8 @@
 #include "PriorShutter.h"
 #include <sstream>
 
-CShutter::CShutter(const char* name, int id) :
-   PriorPeripheralBase<CShutterBase<CShutter>>(name),
+Shutter::Shutter(const char* name, int id) :
+   PriorPeripheralBase<CShutterBase<Shutter>>(name),
    name_(name),
    shutterId_(id),
    initialized_(false)
@@ -38,17 +38,17 @@ CShutter::CShutter(const char* name, int id) :
    CreateProperty(MM::g_Keyword_Description, desc.str().c_str(), MM::String, true);
 }
 
-CShutter::~CShutter()
+Shutter::~Shutter()
 {
    Shutdown();
 }
 
-void CShutter::GetName(char* pszName) const
+void Shutter::GetName(char* pszName) const
 {
    CDeviceUtils::CopyLimitedString(pszName, name_.c_str());
 }
 
-int CShutter::Initialize()
+int Shutter::Initialize()
 {
    if (initialized_)
       return DEVICE_OK;
@@ -58,7 +58,7 @@ int CShutter::Initialize()
    RETURN_ON_MM_ERROR(PeripheralInitialize());
 
    // Create state property
-   CPropertyAction* pAct = new CPropertyAction(this, &CShutter::OnState);
+   CPropertyAction* pAct = new CPropertyAction(this, &Shutter::OnState);
    CreateProperty(MM::g_Keyword_State, "0", MM::Integer, false, pAct);
    AddAllowedValue(MM::g_Keyword_State, "0");  // Closed
    AddAllowedValue(MM::g_Keyword_State, "1");  // Open
@@ -67,7 +67,7 @@ int CShutter::Initialize()
    return DEVICE_OK;
 }
 
-int CShutter::Shutdown()
+int Shutter::Shutdown()
 {
    if (!initialized_)
       return DEVICE_OK;
@@ -76,7 +76,7 @@ int CShutter::Shutdown()
    return DEVICE_OK;
 }
 
-bool CShutter::Busy()
+bool Shutter::Busy()
 {
    // Shutters are not busy (instantaneous operation)
    return false;
@@ -86,7 +86,7 @@ bool CShutter::Busy()
 // Shutter API
 //////////////////////////////////////////////////////////////////////////////
 
-int CShutter::SetOpen(bool open)
+int Shutter::SetOpen(bool open)
 {
    std::ostringstream command;
    command << "8," << shutterId_ << "," << (open ? "0" : "1");  // 0=open, 1=closed
@@ -103,7 +103,7 @@ int CShutter::SetOpen(bool open)
    return ERR_PRIOR_UNRECOGNIZED_ANSWER;
 }
 
-int CShutter::GetOpen(bool& open)
+int Shutter::GetOpen(bool& open)
 {
    std::ostringstream command;
    command << "8," << shutterId_;
@@ -119,7 +119,7 @@ int CShutter::GetOpen(bool& open)
    return DEVICE_OK;
 }
 
-int CShutter::Fire(double deltaT)
+int Shutter::Fire(double deltaT)
 {
    // Open shutter
    RETURN_ON_MM_ERROR(SetOpen(true));
@@ -137,7 +137,7 @@ int CShutter::Fire(double deltaT)
 // Action handlers
 //////////////////////////////////////////////////////////////////////////////
 
-int CShutter::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
+int Shutter::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {

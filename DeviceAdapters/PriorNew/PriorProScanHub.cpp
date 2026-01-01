@@ -21,17 +21,15 @@
 //                INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES.
 
 #include "PriorProScanHub.h"
+#include "PriorXYStage.h"
+#include "PriorZStage.h"
+#include "PriorNanoZStage.h"
+#include "PriorShutter.h"
+#include "PriorWheel.h"
+#include "PriorLumen.h"
+#include "PriorTTLShutter.h"
 #include "ModuleInterface.h"
 #include <sstream>
-
-// Forward declarations for device classes (will be defined later)
-class CXYStage;
-class CZStage;
-class CNanoZStage;
-class CShutter;
-class CWheel;
-class CLumen;
-class CTTLShutter;
 
 CPriorProScanHub::CPriorProScanHub() :
    PriorHub()
@@ -72,21 +70,14 @@ int CPriorProScanHub::Initialize()
    if (initialized_)
       return DEVICE_OK;
 
+   // Wait for controller to initialize.  Only needed for Arduino, make this a pre-init property, or remove completely after debugging
+   CDeviceUtils::SleepMs(2500);
+
    // Set controller to standard mode (disable compatibility mode)
    RETURN_ON_MM_ERROR(SetStandardMode());
 
    // Get controller information
    RETURN_ON_MM_ERROR(GetControllerInfo());
-
-   // Create post-initialization properties
-
-   // Serial command (for debugging)
-   CPropertyAction* pAct = new CPropertyAction(this, &CPriorProScanHub::OnSerialCommand);
-   CreateProperty(g_PropName_SerialCommand, "", MM::String, false, pAct);
-
-   // Serial response (read-only, for debugging)
-   pAct = new CPropertyAction(this, &CPriorProScanHub::OnSerialResponse);
-   CreateProperty(g_PropName_SerialResponse, "", MM::String, true, pAct);
 
    initialized_ = true;
    return DEVICE_OK;
@@ -138,14 +129,12 @@ int CPriorProScanHub::DetectInstalledDevices()
 
    ClearInstalledDevices();
 
-   // Probe for devices
+   // Probe for devices, these will call AddInstalledDevice internally
    DetectXYStage();
    DetectZStage();
-   DetectNanoZStage();
    DetectShutters();
    DetectWheels();
-   DetectLumen();
-   DetectTTLShutters();
+   // Not implmenet yet: DetectNanoZStage(); DetectLumen(); DetectTTLShutters();
 
    return DEVICE_OK;
 }
@@ -169,10 +158,7 @@ int CPriorProScanHub::DetectXYStage()
    if (endPtr == response.c_str())
       return ERR_PRIOR_DEVICE_NOT_PRESENT;
 
-   // XY Stage detected - will be created when we implement CXYStage
-   // MM::Device* pDev = ::CreateDevice(g_XYStageDeviceName);
-   // if (pDev)
-   //    AddInstalledDevice(pDev);
+   AddInstalledDevice(new XYStage());
 
    return DEVICE_OK;
 }
@@ -192,8 +178,7 @@ int CPriorProScanHub::DetectZStage()
    if (endPtr == response.c_str())
       return ERR_PRIOR_DEVICE_NOT_PRESENT;
 
-   // Z Stage detected
-   // Will add device creation when CZStage is implemented
+   AddInstalledDevice(new ZStage());
 
    return DEVICE_OK;
 }
@@ -208,6 +193,8 @@ int CPriorProScanHub::DetectNanoZStage()
 int CPriorProScanHub::DetectShutters()
 {
    // Probe shutters 1-3
+   const char* shutterNames[] = {g_Shutter1DeviceName, g_Shutter2DeviceName, g_Shutter3DeviceName};
+
    for (int id = 1; id <= 3; ++id)
    {
       std::ostringstream cmd;
@@ -218,8 +205,8 @@ int CPriorProScanHub::DetectShutters()
 
       if (ret == DEVICE_OK && !IsErrorResponse(response))
       {
-         // Shutter detected
-         // Will add device creation when CShutter is implemented
+         // Shutter detected - add to installed devices
+         AddInstalledDevice(new Shutter(shutterNames[id - 1], id));
       }
    }
 
@@ -229,18 +216,20 @@ int CPriorProScanHub::DetectShutters()
 int CPriorProScanHub::DetectWheels()
 {
    // Probe filter wheels 1-3
+   const char* wheelNames[] = {g_Wheel1DeviceName, g_Wheel2DeviceName, g_Wheel3DeviceName};
+
    for (int id = 1; id <= 3; ++id)
    {
       std::ostringstream cmd;
-      cmd << "7," << id;
+      cmd << "7," << id << ",F";
 
       std::string response;
       int ret = QueryCommand(cmd.str(), response);
 
       if (ret == DEVICE_OK && !IsErrorResponse(response))
       {
-         // Filter wheel detected
-         // Will add device creation when CWheel is implemented
+         // Filter wheel detected - add to installed devices
+         AddInstalledDevice(new Wheel(wheelNames[id - 1], id));
       }
    }
 
@@ -258,7 +247,7 @@ int CPriorProScanHub::DetectTTLShutters()
 {
    // TTL shutter detection would require specific commands
    // For now, we'll skip automatic detection
-   return DEVICE_OK;
+   return ERR_PRIOR_DEVICE_NOT_PRESENT;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -306,43 +295,6 @@ int CPriorProScanHub::OnPort(MM::PropertyBase* pProp, MM::ActionType eAct)
          return ERR_PRIOR_PORT_CHANGE_FORBIDDEN;
       }
       pProp->Get(port_);
-   }
-
-   return DEVICE_OK;
-}
-
-int CPriorProScanHub::OnSerialCommand(MM::PropertyBase* pProp, MM::ActionType eAct)
-{
-   if (eAct == MM::BeforeGet)
-   {
-      pProp->Set(lastCommand_.c_str());
-   }
-   else if (eAct == MM::AfterSet)
-   {
-      // User entered a command - execute it
-      std::string command;
-      pProp->Get(command);
-
-      if (!command.empty())
-      {
-         std::string response;
-         int ret = QueryCommand(command, response);
-         if (ret != DEVICE_OK)
-            return ret;
-
-         // Update response property
-         SetProperty(g_PropName_SerialResponse, response.c_str());
-      }
-   }
-
-   return DEVICE_OK;
-}
-
-int CPriorProScanHub::OnSerialResponse(MM::PropertyBase* pProp, MM::ActionType eAct)
-{
-   if (eAct == MM::BeforeGet)
-   {
-      pProp->Set(lastResponse_.c_str());
    }
 
    return DEVICE_OK;

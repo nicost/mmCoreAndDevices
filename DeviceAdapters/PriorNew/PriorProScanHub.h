@@ -48,8 +48,6 @@ public:
 
    // Property handlers
    int OnPort(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnSerialCommand(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnSerialResponse(MM::PropertyBase* pProp, MM::ActionType eAct);
 
 protected:
    // Implement PriorHub virtual methods for serial communication
