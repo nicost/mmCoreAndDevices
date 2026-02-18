@@ -3327,11 +3327,11 @@ int CMMTUCam::OnBinning(MM::PropertyBase* pProp, MM::ActionType eAct)
 
 			 pProp->Set(valText.pText);
 
-			 ret = DEVICE_OK;
 		 } 
 		 else {
 			 pProp->Set("1");
 		 }
+       ret = DEVICE_OK;
     }
     break;
     default:
