@@ -259,7 +259,7 @@ public:
     int OnTestProperty(MM::PropertyBase* pProp, MM::ActionType eAct, long);
 
     int OnBinning(MM::PropertyBase* pProp, MM::ActionType eAct);
-    int OnBinningSum(MM::PropertyBase* pProp, MM::ActionType eAct);
+    int OnResolution(MM::PropertyBase* pProp, MM::ActionType eAct);
     int OnPixelClock(MM::PropertyBase* pProp, MM::ActionType eAct);
     int OnExposure(MM::PropertyBase* pProp, MM::ActionType eAct);
 	int OnBrightness(MM::PropertyBase* pProp, MM::ActionType eAct);
@@ -358,6 +358,7 @@ public:
 private:
 	int SetAllowedDepth();
     int SetAllowedBinning();
+    int SetAllowedResolutions();
     int SetAllowedBinningSum();
     int SetAllowedPixelClock();
     int SetAllowedFanGear();

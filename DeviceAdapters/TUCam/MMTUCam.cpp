@@ -107,7 +107,7 @@ const char* g_PropNameImgMetadata= "Image Metadata";
 const char* g_PropNameATExpMode  = "ATExposure Mode";
 const char* g_PropNameATExpMax = "ATExposure Max";
 
-const char* g_PropNameBinningSum = "Binning Sum";
+const char* g_PropNameResolution = "Resolution";
 
 const char* g_DeviceName = "Dhyana";   //"400Li"
 const char* g_SdkName = "TUCam";
@@ -545,17 +545,14 @@ int CMMTUCam::Initialize()
     if (nRet != DEVICE_OK)
         return nRet;
 
-	if (PID_FL_26BW == m_nPID || PID_LIBRA_16 == m_nPID || PID_LIBRA_22 == m_nPID || PID_LIBRA_25 == m_nPID)
-    {
-        // binning sum
-        pAct = new CPropertyAction(this, &CMMTUCam::OnBinningSum);
-        nRet = CreateProperty(g_PropNameBinningSum, "", MM::String, false, pAct);
-        assert(nRet == DEVICE_OK);
+     // resolution
+     pAct = new CPropertyAction(this, &CMMTUCam::OnResolution);
+     nRet = CreateProperty(g_PropNameResolution, "", MM::String, false, pAct);
+     assert(nRet == DEVICE_OK);
 
-        nRet = SetAllowedBinningSum();
-        if (nRet != DEVICE_OK)
-            return nRet;
-    }
+     nRet = SetAllowedResolutions();
+     if (nRet != DEVICE_OK)
+         return nRet;
 
     // Bit depth
     capaAttr.idCapa = TUIDC_BITOFDEPTH;
@@ -896,7 +893,7 @@ int CMMTUCam::Initialize()
 	propAttr.idProp = TUIDP_CLRTEMPERATURE;
 	if (TUCAMRET_SUCCESS == TUCAM_Prop_GetAttr(m_opCam.hIdxTUCam, &propAttr))
 	{
-		CPropertyAction *pAct = new CPropertyAction(this, &CMMTUCam::OnClrTemp);
+		pAct = new CPropertyAction(this, &CMMTUCam::OnClrTemp);
 		nRet = CreateProperty(g_PropNameCLRTEMP, "2000K", MM::String, false, pAct);
 		assert(nRet == DEVICE_OK);
 
@@ -2275,7 +2272,7 @@ int CMMTUCam::SetAllowedDepth()
 	return SetAllowedValues(g_PropNameBODP, depthValues);
 }
 
-int CMMTUCam::SetAllowedBinning() 
+int CMMTUCam::SetAllowedResolutions() 
 {
     if (NULL == m_opCam.hIdxTUCam)
         return DEVICE_NOT_CONNECTED;
@@ -2324,14 +2321,18 @@ int CMMTUCam::SetAllowedBinning()
         }
     }
 
-    LogMessage("Setting allowed binning settings", true);
-    return SetAllowedValues(MM::g_Keyword_Binning, binValues);
+    LogMessage("Setting allowed resolutions", true);
+    return SetAllowedValues(g_PropNameResolution, binValues);
 }
 
-int CMMTUCam::SetAllowedBinningSum()
+int CMMTUCam::SetAllowedBinning()
 {
     if (NULL == m_opCam.hIdxTUCam)
         return DEVICE_NOT_CONNECTED;
+
+	 if (!(PID_FL_26BW == m_nPID || PID_LIBRA_16 == m_nPID || PID_LIBRA_22 == m_nPID || PID_LIBRA_25 == m_nPID)) {
+		 return AddAllowedValue(MM::g_Keyword_Binning, "1");
+	 }
 
     TUCAM_CAPA_ATTR capaAttr;
     capaAttr.idCapa = TUIDC_BINNING_SUM;
@@ -2358,8 +2359,8 @@ int CMMTUCam::SetAllowedBinningSum()
         binValues.push_back(string(valText.pText));
     }
 
-    LogMessage("Setting allowed binning sum settings", true);
-    return SetAllowedValues(g_PropNameBinningSum, binValues);
+    LogMessage("Setting allowed binning", true);
+    return SetAllowedValues(MM::g_Keyword_Binning, binValues);
 }
 
 int CMMTUCam::SetAllowedPixelClock()
@@ -3077,7 +3078,7 @@ int CMMTUCam::OnTestProperty(MM::PropertyBase* pProp, MM::ActionType eAct, long 
 /**
 * Handles "Binning" property.
 */
-int CMMTUCam::OnBinning(MM::PropertyBase* pProp, MM::ActionType eAct)
+int CMMTUCam::OnResolution(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
     if (NULL == m_opCam.hIdxTUCam)
         return DEVICE_NOT_CONNECTED;
@@ -3250,9 +3251,9 @@ int CMMTUCam::OnBinning(MM::PropertyBase* pProp, MM::ActionType eAct)
 }
 
 /**
-* Handles "BinningSum" property.
+* Handles "Binning" property.
 */
-int CMMTUCam::OnBinningSum(MM::PropertyBase* pProp, MM::ActionType eAct)
+int CMMTUCam::OnBinning(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
     if (NULL == m_opCam.hIdxTUCam)
         return DEVICE_NOT_CONNECTED;
@@ -3262,67 +3263,75 @@ int CMMTUCam::OnBinningSum(MM::PropertyBase* pProp, MM::ActionType eAct)
     {
     case MM::AfterSet:
     {
-        string val;
-        pProp->Get(val);
+       // ignore if we are not one of these models, since they don't have the binning property
+		 if (PID_FL_26BW == m_nPID || PID_LIBRA_16 == m_nPID || PID_LIBRA_22 == m_nPID || PID_LIBRA_25 == m_nPID) {
+			 string val;
+			 pProp->Get(val);
 
-        if (val.length() != 0)
-        {
-            TUCAM_CAPA_ATTR capaAttr;
-            capaAttr.idCapa = TUIDC_BINNING_SUM;
+			 if (val.length() != 0)
+			 {
+				 TUCAM_CAPA_ATTR capaAttr;
+				 capaAttr.idCapa = TUIDC_BINNING_SUM;
 
-            if (TUCAMRET_SUCCESS == TUCAM_Capa_GetAttr(m_opCam.hIdxTUCam, &capaAttr))
-            {
-                char szBuf[64] = { 0 };
-                TUCAM_VALUE_TEXT valText;
-                valText.nID = TUIDC_BINNING_SUM;
-                valText.nTextSize = 64;
-                valText.pText = &szBuf[0];
+				 if (TUCAMRET_SUCCESS == TUCAM_Capa_GetAttr(m_opCam.hIdxTUCam, &capaAttr))
+				 {
+					 char szBuf[64] = { 0 };
+					 TUCAM_VALUE_TEXT valText;
+					 valText.nID = TUIDC_BINNING_SUM;
+					 valText.nTextSize = 64;
+					 valText.pText = &szBuf[0];
 
-                int nCnt = (int)(capaAttr.nValMax - capaAttr.nValMin + 1);
+					 int nCnt = (int)(capaAttr.nValMax - capaAttr.nValMin + 1);
 
-                for (int i = 0; i<nCnt; i++)
-                {
-                    valText.dbValue = i;
-                    TUCAM_Capa_GetValueText(m_opCam.hIdxTUCam, &valText);
+					 for (int i = 0; i < nCnt; i++)
+					 {
+						 valText.dbValue = i;
+						 TUCAM_Capa_GetValueText(m_opCam.hIdxTUCam, &valText);
 
-                    if (0 == val.compare(valText.pText))
-                    {
-                        TUCAM_Capa_SetValue(m_opCam.hIdxTUCam, TUIDC_BINNING_SUM, i);
-                        break;
-                    }
-                }
+						 if (0 == val.compare(valText.pText))
+						 {
+							 TUCAM_Capa_SetValue(m_opCam.hIdxTUCam, TUIDC_BINNING_SUM, i);
+							 break;
+						 }
+					 }
 
-                m_bROI = FALSE;
-                ResizeImageBuffer();
+					 m_bROI = FALSE;
+					 ResizeImageBuffer();
 
-                roiX_ = 0;
-                roiY_ = 0;
-            }
+					 roiX_ = 0;
+					 roiY_ = 0;
+				 }
 
-            UpdateLevelsRange();
-            OnPropertyChanged(g_PropNameBinningSum, val.c_str());
+				 UpdateLevelsRange();
+				 OnPropertyChanged(MM::g_Keyword_Binning, val.c_str());
 
-            ret = DEVICE_OK;
-        }
+				 ret = DEVICE_OK;
+			 }
+		 }
     }
     break;
     case  MM::BeforeGet:
     {
-        int val = 0;
-        TUCAM_Capa_GetValue(m_opCam.hIdxTUCam, TUIDC_BINNING_SUM, &val);
+		 if (PID_FL_26BW == m_nPID || PID_LIBRA_16 == m_nPID || PID_LIBRA_22 == m_nPID || PID_LIBRA_25 == m_nPID) {
+			 int val = 0;
+			 TUCAM_Capa_GetValue(m_opCam.hIdxTUCam, TUIDC_BINNING_SUM, &val);
 
-        char szBuf[64] = { 0 };
-        TUCAM_VALUE_TEXT valText;
-        valText.nID = TUIDC_BINNING_SUM;
-        valText.nTextSize = 64;
-        valText.pText = &szBuf[0];
+			 char szBuf[64] = { 0 };
+			 TUCAM_VALUE_TEXT valText;
+			 valText.nID = TUIDC_BINNING_SUM;
+			 valText.nTextSize = 64;
+			 valText.pText = &szBuf[0];
 
-        valText.dbValue = val;
-        TUCAM_Capa_GetValueText(m_opCam.hIdxTUCam, &valText);
+			 valText.dbValue = val;
+			 TUCAM_Capa_GetValueText(m_opCam.hIdxTUCam, &valText);
 
-        pProp->Set(valText.pText);
+			 pProp->Set(valText.pText);
 
-        ret = DEVICE_OK;
+			 ret = DEVICE_OK;
+		 } 
+		 else {
+			 pProp->Set("1");
+		 }
     }
     break;
     default:
