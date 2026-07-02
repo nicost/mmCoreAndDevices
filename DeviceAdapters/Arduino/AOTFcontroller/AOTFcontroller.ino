@@ -125,7 +125,7 @@
 // If you have one of these DA chips attached, uncomment the appropriate define
 // #define TLV5618
 // #define TLV56x8
-#define MCP4728
+// #define MCP4728
 
 #ifdef MCP4728
 #include <Wire.h>
