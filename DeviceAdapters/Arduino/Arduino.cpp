@@ -131,6 +131,7 @@ CArduinoHub::CArduinoHub() :
    daMinV_(g_MaxDAChannels + 1, 0.0),
    daMaxV_(g_MaxDAChannels + 1, 0.0),
    daRangeKnown_(g_MaxDAChannels + 1, false),
+   daNumSteps_(g_MaxDAChannels + 1, 4095UL),
    version_(0),
    extendedVersion_(0),
    magnifier_(0),
@@ -413,9 +414,9 @@ int CArduinoHub::Initialize()
          if (ret != DEVICE_OK) return ret;
 
          MM::MMTime startTime = GetCurrentMMTime();
-         const unsigned int nrBytes = 10;
+         const unsigned int nrBytes = 14;
          unsigned long bytesRead = 0;
-         unsigned char answer[nrBytes] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+         unsigned char answer[nrBytes] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
          while ((bytesRead < nrBytes) && ((GetCurrentMMTime() - startTime).getMsec() < 250)) {
             unsigned long br;
             ret = ReadFromComPortH(answer + bytesRead, nrBytes - bytesRead, br);
@@ -429,12 +430,15 @@ int CArduinoHub::Initialize()
                                          ((uint32_t) answer[4] << 8)  |  (uint32_t) answer[5]);
          int32_t maxMicroV = (int32_t) (((uint32_t) answer[6] << 24) | ((uint32_t) answer[7] << 16) |
                                          ((uint32_t) answer[8] << 8)  |  (uint32_t) answer[9]);
+         uint32_t numSteps  = ((uint32_t) answer[10] << 24) | ((uint32_t) answer[11] << 16) |
+                              ((uint32_t) answer[12] << 8)  |  (uint32_t) answer[13];
          unsigned idx = ch0 + 1;               // store 1-based
          if (minMicroV == 0 && maxMicroV == 0) {
             daRangeKnown_[idx] = false;
          } else {
             daMinV_[idx] = minMicroV / 1000000.0;
             daMaxV_[idx] = maxMicroV / 1000000.0;
+            daNumSteps_[idx] = numSteps;
             daRangeKnown_[idx] = true;
          }
       }
@@ -457,13 +461,14 @@ int CArduinoHub::Initialize()
 }
 
 
-bool CArduinoHub::GetDAVoltageRange(unsigned channel, double& minV, double& maxV)
+bool CArduinoHub::GetDAVoltageRange(unsigned channel, double& minV, double& maxV, unsigned long& numSteps)
 {
    if (version_ < 6) return false;
    if (channel < 1 || channel >= daRangeKnown_.size()) return false;
    if (!daRangeKnown_[channel]) return false;
    minV = daMinV_[channel];
    maxV = daMaxV_[channel];
+   numSteps = daNumSteps_[channel];
    return true;
 }
 
@@ -1248,7 +1253,8 @@ CArduinoDA::CArduinoDA(int channel) :
       gateOpen_(true),
       physMinV_(0.0),
       physMaxV_(5.0),
-      hasPhysRange_(false)
+      hasPhysRange_(false),
+      numSteps_(4095)
 {
    InitializeDefaultErrorMessages();
 
@@ -1302,7 +1308,7 @@ int CArduinoDA::Initialize()
 
    maxChannel_ = hub->GetNumDAChannels();
 
-   if (hub->GetDAVoltageRange(channel_, physMinV_, physMaxV_))
+   if (hub->GetDAVoltageRange(channel_, physMinV_, physMaxV_, numSteps_))
    {
       hasPhysRange_ = true;
       minV_ = physMinV_;
@@ -1380,9 +1386,9 @@ int CArduinoDA::WriteSignal(double volts)
    double refMin = hasPhysRange_ ? physMinV_ : minV_;
    double refMax = hasPhysRange_ ? physMaxV_ : maxV_;
    double span = refMax - refMin;
-   long value = (span > 0.0) ? (long) ((volts - refMin) / span * 4095) : 0;
+   long value = (span > 0.0) ? (long) ((volts - refMin) / span * numSteps_) : 0;
    if (value < 0) value = 0;
-   if (value > 4095) value = 4095;
+   if (value > (long) numSteps_) value = (long) numSteps_;
 
    std::ostringstream os;
     os << "Volts: " << volts << " Max Voltage: " << maxV_ << " digital value: " << value;

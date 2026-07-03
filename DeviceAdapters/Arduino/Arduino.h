@@ -64,7 +64,7 @@ public:
    };
    unsigned int GetNumDAChannels() { return numDAChannels_; }
    unsigned int GetNumDigitalPins() { return numDigitalPins_; }
-   bool GetDAVoltageRange(unsigned channel /*1-based*/, double& minV, double& maxV);
+   bool GetDAVoltageRange(unsigned channel /*1-based*/, double& minV, double& maxV, unsigned long& numSteps);
 
    // custom interface for child devices
    bool IsPortAvailable() {return portAvailable_;}
@@ -103,6 +103,7 @@ private:
    std::vector<double> daMinV_;
    std::vector<double> daMaxV_;
    std::vector<bool>   daRangeKnown_;
+   std::vector<unsigned long> daNumSteps_;
    CArduinoMagnifier* magnifier_;
    std::mutex mutex_;
    unsigned switchState_;
@@ -238,6 +239,7 @@ private:
    double physMinV_;
    double physMaxV_;
    bool hasPhysRange_;
+   unsigned long numSteps_;
 };
 
 class CArduinoInput : public CGenericBase<CArduinoInput>  

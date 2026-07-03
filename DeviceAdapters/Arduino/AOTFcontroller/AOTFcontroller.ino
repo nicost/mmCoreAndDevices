@@ -107,11 +107,15 @@
  *   Returns: 35 followed by 1 byte with the number of digital output pins
  *   Available as of version 5
  *
- * Get DA channel voltage range: 36x
+ * Get DA channel voltage range and resolution: 36x
  *   Where x is the DA channel (0-based).
- *   Returns: 36 followed by channel, then min voltage and max voltage,
- *   each as a signed long (int32_t) in microvolts, 4 bytes, highbyte first.
- *   A value of 0/0 means the voltage range is not known.
+ *   Returns: 36 followed by channel, then min voltage, max voltage, and the
+ *   maximum digital code for that channel:
+ *     - min voltage: signed long (int32_t), microvolts, 4 bytes, highbyte first
+ *     - max voltage: signed long (int32_t), microvolts, 4 bytes, highbyte first
+ *     - max digital code: unsigned long (uint32_t), 4 bytes, highbyte first
+ *       (e.g. 4095 for a 12-bit DAC channel)
+ *   A min/max voltage of 0/0 means the voltage range is not known.
  *   Available as of version 6
  *
  *
@@ -140,9 +144,9 @@
 #include <EEPROM.h>
 #endif
 
-   unsigned int version_ = 6;
+  const unsigned int version_ = 6;
 
-  // const uint8_t numDAChannels_ = 0;  // Set to appropriate number depending on attached DA chip
+ 
   #if defined TLV5618
   const uint8_t numDAChannels_ = 2;
   #elif defined TLV56x8
@@ -498,12 +502,13 @@
          Serial.write(byte(numDigitalPins_));
          break;
 
-       // Returns the voltage range (min/max, signed, in microvolts) of the given DA channel
+       // Returns the voltage range and max digital code (signed V, unsigned steps) of the given DA channel
        case 36:
          if (waitForSerial(timeOut_)) {
            int channel = Serial.read();
            int32_t minMicroV = 0, maxMicroV = 0;
-           getDaVoltageRangeMicroV(channel, minMicroV, maxMicroV);
+           uint32_t numSteps = 0;
+           getDaVoltageRangeMicroV(channel, minMicroV, maxMicroV, numSteps);
            Serial.write(byte(36));
            Serial.write(byte(channel));
            Serial.write(byte((minMicroV >> 24) & 0xFF));
@@ -514,6 +519,10 @@
            Serial.write(byte((maxMicroV >> 16) & 0xFF));
            Serial.write(byte((maxMicroV >> 8) & 0xFF));
            Serial.write(byte(maxMicroV & 0xFF));
+           Serial.write(byte((numSteps >> 24) & 0xFF));
+           Serial.write(byte((numSteps >> 16) & 0xFF));
+           Serial.write(byte((numSteps >> 8) & 0xFF));
+           Serial.write(byte(numSteps & 0xFF));
          }
          break;
 
@@ -700,21 +709,24 @@ void analogueOut(int channel, byte msb, byte lsb) {}; // noop
 #endif
 
 #if defined TLV5618 || defined TLV56x8
-bool getDaVoltageRangeMicroV(int /*channel*/, int32_t &minMicroV, int32_t &maxMicroV) {
-  minMicroV = 0; maxMicroV = 5000000L;   
+bool getDaVoltageRangeMicroV(int /*channel*/, int32_t &minMicroV, int32_t &maxMicroV, uint32_t &numSteps) {
+  minMicroV = 0; maxMicroV = 5000000L;
+  numSteps = 4095;   // 12-bit DAC
   return false;
 }
 #elif defined MCP4728
-bool getDaVoltageRangeMicroV(int channel, int32_t &minMicroV, int32_t &maxMicroV) {
-  if (channel < 0 || channel > 3 || !mcp_ok) { minMicroV = 0; maxMicroV = 0; return false; }
+bool getDaVoltageRangeMicroV(int channel, int32_t &minMicroV, int32_t &maxMicroV, uint32_t &numSteps) {
+  if (channel < 0 || channel > 3 || !mcp_ok) { minMicroV = 0; maxMicroV = 0; numSteps = 0; return false; }
   updateDacCapFromModePin();
   minMicroV = 0;
   maxMicroV = (dacCodeCap_ == DAC_CODE_MAX_5V) ? 5000000L : 3300000L;
+  numSteps = dacCodeCap_;   // actual max code reachable in the current mode
   return true;
 }
 #else
-bool getDaVoltageRangeMicroV(int /*channel*/, int32_t &minMicroV, int32_t &maxMicroV) {
+bool getDaVoltageRangeMicroV(int /*channel*/, int32_t &minMicroV, int32_t &maxMicroV, uint32_t &numSteps) {
   minMicroV = 0; maxMicroV = 5000000L;
+  numSteps = 4095;
   return false;
 }
 #endif
