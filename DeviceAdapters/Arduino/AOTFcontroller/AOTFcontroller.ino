@@ -133,10 +133,24 @@
  *   Get Number of digital patterns
  */
 
+
+ /************* For DA accessory chips, edit this section ********/
+
 // If you have one of these DA chips attached, uncomment the appropriate define
 // #define TLV5618
 // #define TLV56x8
-#define MCP4728
+// #define MCP4728
+
+// Voltage range and resolution of the DA channels, reported to the host via
+// command 36.  Currently the same fixed values are used for all channels;
+// change these if the attached DAC hardware differs.
+const int32_t DA_MIN_VOLTAGE_MICROV = 0;          // 0 V
+const int32_t DA_MAX_VOLTAGE_MICROV = 5000000L;   // 5 V
+const uint32_t DA_NUM_STEPS = 4095;               // max digital code (12-bit)
+
+/**************** End editing DA accessory chips section ********/
+
+const unsigned int version_ = 6;
 
 #ifdef MCP4728
 #include <Wire.h>
@@ -144,33 +158,27 @@
 #include <EEPROM.h>
 #endif
 
-  const unsigned int version_ = 6;
-
  
-  #if defined TLV5618
-  const uint8_t numDAChannels_ = 2;
-  #elif defined TLV56x8
-  const uint8_t numDAChannels_ = 4;
-  #elif defined MCP4728
-  const uint8_t numDAChannels_ = 4;
-  #else
-  const uint8_t numDAChannels_ = 0;
-  #endif
+#if defined TLV5618
+const uint8_t numDAChannels_ = 2;
+#elif defined TLV56x8
+const uint8_t numDAChannels_ = 4;
+#elif defined MCP4728
+const uint8_t numDAChannels_ = 4;
+#else
+const uint8_t numDAChannels_ = 0;
+#endif
 
-  #ifdef MCP4728
-  static const uint8_t MCP4728_ADDR   = 0x60;
-  static const uint8_t LDAC_PIN       = 4;
-  static const uint8_t RDY_PIN        = 3;
-  static const uint8_t MODE_SENSE_PIN = 7;
-  static const uint16_t DAC_CODE_MAX_5V  = 4095;
-  static const uint16_t DAC_CODE_MAX_3V3 = (uint16_t)((3.3f / 5.0f) * 4095.0f + 0.5f);
-  // change this to 5V for 5V unit
-  uint16_t dacCodeCap_ = DAC_CODE_MAX_3V3;
-  Adafruit_MCP4728 mcp;
-  bool mcp_ok = false;
-  #endif
 
-  const uint8_t numDigitalPins_ = 6;
+#ifdef MCP4728
+static const uint8_t MCP4728_ADDR   = 0x60;
+static const uint8_t LDAC_PIN       = 4;
+static const uint8_t RDY_PIN        = 3;
+Adafruit_MCP4728 mcp;
+bool mcp_ok = false;
+#endif
+
+const uint8_t numDigitalPins_ = 6;
    
    // pin on which to receive the trigger (2 and 3 can be used with interrupts, although this code does not use interrupts)
    int inPin_ = 2;
@@ -248,8 +256,6 @@
    pinMode(LDAC_PIN, OUTPUT);
    digitalWrite(LDAC_PIN, LOW);
    pinMode(RDY_PIN, INPUT_PULLUP);
-   pinMode(MODE_SENSE_PIN, INPUT);
-   updateDacCapFromModePin();
    Wire.begin();
    mcp_ok = mcp.begin(MCP4728_ADDR);
    {
@@ -680,20 +686,11 @@ void analogueOut(int channel, byte msb, byte lsb)
 
 #elif defined MCP4728
 
-void updateDacCapFromModePin(void) {
-  if (digitalRead(MODE_SENSE_PIN) == HIGH)
-    dacCodeCap_ = DAC_CODE_MAX_5V;
-  else
-    dacCodeCap_ = DAC_CODE_MAX_3V3;
-}
-
 void analogueOut(int channel, byte msb, byte lsb) {
   if (!mcp_ok) return;
-  updateDacCapFromModePin();
   int ch = channel;
   if (ch < 0 || ch > 3) return;
   uint16_t value12 = ((uint16_t)(msb & 0x0F) << 8) | (uint16_t)lsb;
-  if (value12 > dacCodeCap_) value12 = dacCodeCap_;
   MCP4728_channel_t mcp_ch = MCP4728_CHANNEL_A;
   if (ch == 1) mcp_ch = MCP4728_CHANNEL_B;
   else if (ch == 2) mcp_ch = MCP4728_CHANNEL_C;
@@ -708,28 +705,24 @@ void analogueOut(int channel, byte msb, byte lsb) {}; // noop
 
 #endif
 
-#if defined TLV5618 || defined TLV56x8
-bool getDaVoltageRangeMicroV(int /*channel*/, int32_t &minMicroV, int32_t &maxMicroV, uint32_t &numSteps) {
-  minMicroV = 0; maxMicroV = 5000000L;
-  numSteps = 4095;   // 12-bit DAC
-  return false;
-}
-#elif defined MCP4728
+// Reports the fixed voltage range and resolution (DA_MIN_VOLTAGE_MICROV /
+// DA_MAX_VOLTAGE_MICROV / DA_NUM_STEPS) for the given channel, if a DA chip
+// is compiled in and the channel is valid; otherwise reports 0/0/0 (unknown).
 bool getDaVoltageRangeMicroV(int channel, int32_t &minMicroV, int32_t &maxMicroV, uint32_t &numSteps) {
-  if (channel < 0 || channel > 3 || !mcp_ok) { minMicroV = 0; maxMicroV = 0; numSteps = 0; return false; }
-  updateDacCapFromModePin();
-  minMicroV = 0;
-  maxMicroV = (dacCodeCap_ == DAC_CODE_MAX_5V) ? 5000000L : 3300000L;
-  numSteps = dacCodeCap_;   // actual max code reachable in the current mode
+#if defined TLV5618 || defined TLV56x8 || defined MCP4728
+  if (channel < 0 || channel >= numDAChannels_) { minMicroV = 0; maxMicroV = 0; numSteps = 0; return false; }
+  #if defined MCP4728
+  if (!mcp_ok) { minMicroV = 0; maxMicroV = 0; numSteps = 0; return false; }
+  #endif
+  minMicroV = DA_MIN_VOLTAGE_MICROV;
+  maxMicroV = DA_MAX_VOLTAGE_MICROV;
+  numSteps = DA_NUM_STEPS;
   return true;
-}
 #else
-bool getDaVoltageRangeMicroV(int /*channel*/, int32_t &minMicroV, int32_t &maxMicroV, uint32_t &numSteps) {
-  minMicroV = 0; maxMicroV = 5000000L;
-  numSteps = 4095;
+  minMicroV = 0; maxMicroV = 0; numSteps = 0;
   return false;
-}
 #endif
+}
 
 
 
