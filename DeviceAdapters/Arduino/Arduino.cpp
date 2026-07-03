@@ -16,6 +16,7 @@
 #include "ModuleInterface.h"
 #include <sstream>
 #include <cstdio>
+#include <cstdint>
 
 #ifdef WIN32
    #define WIN32_LEAN_AND_MEAN
@@ -48,7 +49,7 @@ const char* g_DeviceNameArduinoMagnifier = "Arduino-Magnifier";
 
 // Global info about the state of the Arduino.  This should be folded into a class
 const int g_Min_MMVersion = 1;
-const int g_Max_MMVersion = 5;
+const int g_Max_MMVersion = 6;
 // version of the firmware code
 const char* g_versionProp = "Version";
 // space to provide more information about the firmware.  
@@ -127,6 +128,9 @@ CArduinoHub::CArduinoHub() :
    maxNumPatterns_(12),
    numDAChannels_(2),
    numDigitalPins_(6),
+   daMinV_(g_MaxDAChannels + 1, 0.0),
+   daMaxV_(g_MaxDAChannels + 1, 0.0),
+   daRangeKnown_(g_MaxDAChannels + 1, false),
    version_(0),
    extendedVersion_(0),
    magnifier_(0),
@@ -398,6 +402,44 @@ int CArduinoHub::Initialize()
       numDigitalPins_ = answer2[1];
    }
 
+   if (version_ >= 6)
+   {
+      for (unsigned ch0 = 0; ch0 < numDAChannels_ && ch0 < (unsigned) g_MaxDAChannels; ch0++)
+      {
+         unsigned char command[2];
+         command[0] = 36;
+         command[1] = (unsigned char) ch0;      // 0-based wire channel
+         ret = WriteToComPortH((const unsigned char*) command, 2);
+         if (ret != DEVICE_OK) return ret;
+
+         MM::MMTime startTime = GetCurrentMMTime();
+         const unsigned int nrBytes = 10;
+         unsigned long bytesRead = 0;
+         unsigned char answer[nrBytes] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+         while ((bytesRead < nrBytes) && ((GetCurrentMMTime() - startTime).getMsec() < 250)) {
+            unsigned long br;
+            ret = ReadFromComPortH(answer + bytesRead, nrBytes - bytesRead, br);
+            if (ret != DEVICE_OK) return ret;
+            bytesRead += br;
+         }
+         if (answer[0] != 36 || answer[1] != ch0)
+            return ERR_COMMUNICATION;
+
+         int32_t minMicroV = (int32_t) (((uint32_t) answer[2] << 24) | ((uint32_t) answer[3] << 16) |
+                                         ((uint32_t) answer[4] << 8)  |  (uint32_t) answer[5]);
+         int32_t maxMicroV = (int32_t) (((uint32_t) answer[6] << 24) | ((uint32_t) answer[7] << 16) |
+                                         ((uint32_t) answer[8] << 8)  |  (uint32_t) answer[9]);
+         unsigned idx = ch0 + 1;               // store 1-based
+         if (minMicroV == 0 && maxMicroV == 0) {
+            daRangeKnown_[idx] = false;
+         } else {
+            daMinV_[idx] = minMicroV / 1000000.0;
+            daMaxV_[idx] = maxMicroV / 1000000.0;
+            daRangeKnown_[idx] = true;
+         }
+      }
+   }
+
    pAct = new CPropertyAction(this, &CArduinoHub::OnExtendedVersion);
    std::ostringstream seversion;
    seversion << extendedVersion_;
@@ -412,6 +454,17 @@ int CArduinoHub::Initialize()
 
    initialized_ = true;
    return DEVICE_OK;
+}
+
+
+bool CArduinoHub::GetDAVoltageRange(unsigned channel, double& minV, double& maxV)
+{
+   if (version_ < 6) return false;
+   if (channel < 1 || channel >= daRangeKnown_.size()) return false;
+   if (!daRangeKnown_[channel]) return false;
+   minV = daMinV_[channel];
+   maxV = daMaxV_[channel];
+   return true;
 }
 
 
@@ -1190,9 +1243,12 @@ CArduinoDA::CArduinoDA(int channel) :
       maxV_(5.0), 
       volts_(0.0),
       gatedVolts_(0.0),
-      channel_(channel), 
+      channel_(channel),
       maxChannel_(2),
-      gateOpen_(true)
+      gateOpen_(true),
+      physMinV_(0.0),
+      physMaxV_(5.0),
+      hasPhysRange_(false)
 {
    InitializeDefaultErrorMessages();
 
@@ -1202,16 +1258,6 @@ CArduinoDA::CArduinoDA(int channel) :
    SetErrorText(ERR_WRITE_FAILED, "Failed to write data to the device");
    SetErrorText(ERR_CLOSE_FAILED, "Failed closing the device");
    SetErrorText(ERR_NO_PORT_SET, "Hub Device not found.  The Arduino Hub device is needed to create this device");
-
-   /* Channel property is not needed
-   CPropertyAction* pAct = new CPropertyAction(this, &CArduinoDA::OnChannel);
-   CreateProperty("Channel", channel_ == 1 ? "1" : "2", MM::Integer, false, pAct, true);
-   for (int i=1; i<= 2; i++){
-      std::ostringstream os;
-      os << i;
-      AddAllowedValue("Channel", os.str().c_str());
-   }
-   */
 
    CPropertyAction* pAct = new CPropertyAction(this, &CArduinoDA::OnMaxVolt);
    CreateProperty("MaxVolt", "5.0", MM::Float, false, pAct, true);
@@ -1255,6 +1301,14 @@ int CArduinoDA::Initialize()
    SetParentID(hubLabel); // for backward comp.
 
    maxChannel_ = hub->GetNumDAChannels();
+
+   if (hub->GetDAVoltageRange(channel_, physMinV_, physMaxV_))
+   {
+      hasPhysRange_ = true;
+      minV_ = physMinV_;
+      if (maxV_ > physMaxV_)
+         maxV_ = physMaxV_;
+   }
 
    // set property list
    // -----------------
@@ -1323,7 +1377,12 @@ int CArduinoDA::WriteToPort(unsigned long value)
 
 int CArduinoDA::WriteSignal(double volts)
 {
-   long value = (long) ( (volts - minV_) / maxV_ * 4095);
+   double refMin = hasPhysRange_ ? physMinV_ : minV_;
+   double refMax = hasPhysRange_ ? physMaxV_ : maxV_;
+   double span = refMax - refMin;
+   long value = (span > 0.0) ? (long) ((volts - refMin) / span * 4095) : 0;
+   if (value < 0) value = 0;
+   if (value > 4095) value = 4095;
 
    std::ostringstream os;
     os << "Volts: " << volts << " Max Voltage: " << maxV_ << " digital value: " << value;
@@ -1387,8 +1446,10 @@ int CArduinoDA::OnMaxVolt(MM::PropertyBase* pProp, MM::ActionType eAct)
    else if (eAct == MM::AfterSet)
    {
       pProp->Get(maxV_);
+      if (hasPhysRange_ && maxV_ > physMaxV_)
+         maxV_ = physMaxV_;
       if (HasProperty("Volts"))
-         SetPropertyLimits("Volts", 0.0, maxV_);
+         SetPropertyLimits("Volts", minV_, maxV_);
 
    }
    return DEVICE_OK;

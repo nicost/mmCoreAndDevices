@@ -21,6 +21,7 @@
 #include <string>
 #include <map>
 #include <mutex>
+#include <vector>
 
 //////////////////////////////////////////////////////////////////////////////
 // Error codes
@@ -63,6 +64,7 @@ public:
    };
    unsigned int GetNumDAChannels() { return numDAChannels_; }
    unsigned int GetNumDigitalPins() { return numDigitalPins_; }
+   bool GetDAVoltageRange(unsigned channel /*1-based*/, double& minV, double& maxV);
 
    // custom interface for child devices
    bool IsPortAvailable() {return portAvailable_;}
@@ -97,6 +99,10 @@ private:
    unsigned int maxNumPatterns_;
    unsigned int numDAChannels_;
    unsigned int numDigitalPins_;
+   // indexed 1-based (index 0 unused), sized g_MaxDAChannels+1, matches channel_ numbering
+   std::vector<double> daMinV_;
+   std::vector<double> daMaxV_;
+   std::vector<bool>   daRangeKnown_;
    CArduinoMagnifier* magnifier_;
    std::mutex mutex_;
    unsigned switchState_;
@@ -229,6 +235,9 @@ private:
    unsigned maxChannel_;
    bool gateOpen_;
    std::string name_;
+   double physMinV_;
+   double physMaxV_;
+   bool hasPhysRange_;
 };
 
 class CArduinoInput : public CGenericBase<CArduinoInput>  

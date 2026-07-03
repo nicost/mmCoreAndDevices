@@ -107,6 +107,13 @@
  *   Returns: 35 followed by 1 byte with the number of digital output pins
  *   Available as of version 5
  *
+ * Get DA channel voltage range: 36x
+ *   Where x is the DA channel (0-based).
+ *   Returns: 36 followed by channel, then min voltage and max voltage,
+ *   each as a signed long (int32_t) in microvolts, 4 bytes, highbyte first.
+ *   A value of 0/0 means the voltage range is not known.
+ *   Available as of version 6
+ *
  *
  * Read digital state of analogue input pins 0-5: 40
  *   Returns raw value of PINC (two high bits are not used)
@@ -125,7 +132,7 @@
 // If you have one of these DA chips attached, uncomment the appropriate define
 // #define TLV5618
 // #define TLV56x8
-// #define MCP4728
+#define MCP4728
 
 #ifdef MCP4728
 #include <Wire.h>
@@ -133,7 +140,7 @@
 #include <EEPROM.h>
 #endif
 
-   unsigned int version_ = 5;
+   unsigned int version_ = 6;
 
   // const uint8_t numDAChannels_ = 0;  // Set to appropriate number depending on attached DA chip
   #if defined TLV5618
@@ -153,6 +160,7 @@
   static const uint8_t MODE_SENSE_PIN = 7;
   static const uint16_t DAC_CODE_MAX_5V  = 4095;
   static const uint16_t DAC_CODE_MAX_3V3 = (uint16_t)((3.3f / 5.0f) * 4095.0f + 0.5f);
+  // change this to 5V for 5V unit
   uint16_t dacCodeCap_ = DAC_CODE_MAX_3V3;
   Adafruit_MCP4728 mcp;
   bool mcp_ok = false;
@@ -490,6 +498,25 @@
          Serial.write(byte(numDigitalPins_));
          break;
 
+       // Returns the voltage range (min/max, signed, in microvolts) of the given DA channel
+       case 36:
+         if (waitForSerial(timeOut_)) {
+           int channel = Serial.read();
+           int32_t minMicroV = 0, maxMicroV = 0;
+           getDaVoltageRangeMicroV(channel, minMicroV, maxMicroV);
+           Serial.write(byte(36));
+           Serial.write(byte(channel));
+           Serial.write(byte((minMicroV >> 24) & 0xFF));
+           Serial.write(byte((minMicroV >> 16) & 0xFF));
+           Serial.write(byte((minMicroV >> 8) & 0xFF));
+           Serial.write(byte(minMicroV & 0xFF));
+           Serial.write(byte((maxMicroV >> 24) & 0xFF));
+           Serial.write(byte((maxMicroV >> 16) & 0xFF));
+           Serial.write(byte((maxMicroV >> 8) & 0xFF));
+           Serial.write(byte(maxMicroV & 0xFF));
+         }
+         break;
+
        case 40:
          Serial.write( byte(40));
          Serial.write( PINC);
@@ -670,6 +697,26 @@ void analogueOut(int channel, byte msb, byte lsb) {
 
 void analogueOut(int channel, byte msb, byte lsb) {}; // noop
 
+#endif
+
+#if defined TLV5618 || defined TLV56x8
+bool getDaVoltageRangeMicroV(int /*channel*/, int32_t &minMicroV, int32_t &maxMicroV) {
+  minMicroV = 0; maxMicroV = 5000000L;   
+  return false;
+}
+#elif defined MCP4728
+bool getDaVoltageRangeMicroV(int channel, int32_t &minMicroV, int32_t &maxMicroV) {
+  if (channel < 0 || channel > 3 || !mcp_ok) { minMicroV = 0; maxMicroV = 0; return false; }
+  updateDacCapFromModePin();
+  minMicroV = 0;
+  maxMicroV = (dacCodeCap_ == DAC_CODE_MAX_5V) ? 5000000L : 3300000L;
+  return true;
+}
+#else
+bool getDaVoltageRangeMicroV(int /*channel*/, int32_t &minMicroV, int32_t &maxMicroV) {
+  minMicroV = 0; maxMicroV = 5000000L;
+  return false;
+}
 #endif
 
 
