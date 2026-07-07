@@ -22,21 +22,16 @@
 
 #include "ASITiger.h"
 #include "ASITigerComm.h"
-#include <cstdio>
-#include <string>
 #include "MMDevice.h"
 #include "DeviceBase.h"
 #include "ModuleInterface.h"
+#include <cstdio>
 #include <iostream>
+#include <string>
 #include <vector>
 
-
-///////////////////////////////////////////////////////////////////////////////
-// CTigerHub implementation
-//
-CTigerCommHub::CTigerCommHub()
-{
-   CreateProperty(MM::g_Keyword_Name, g_TigerCommHubName, MM::String, true);
+CTigerCommHub::CTigerCommHub() {
+    CreateProperty(MM::g_Keyword_Name, g_TigerCommHubName, MM::String, true);
 }
 
 int CTigerCommHub::Initialize()
@@ -327,9 +322,9 @@ int CTigerCommHub::DetectInstalledDevices()
             command << "Found slave axis letter " <<  build.vAxesLetter[i] << "; skipping it";
             LogMessage(command.str());
             continue; // go on to next axis (skips below code and goes to next for loop iteration)
-		 case 'd':  // Signal DAC
-			 name = g_DacDeviceName;
-			 break;
+        case 'd':  // Signal DAC
+            name = g_DacDeviceName;
+            break;
          default:
             command.str("");
             command << "Device type " <<  build.vAxesType[i] << " not supported by Tiger device adapter, skipping it";

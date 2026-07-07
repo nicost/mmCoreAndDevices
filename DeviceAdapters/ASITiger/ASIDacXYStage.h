@@ -20,151 +20,147 @@
 // AUTHOR:        Brandon Simpson (brandon@asiimaging.com) 2/2022
 //
 
-#ifndef ASIDACXYSTAGE_H
-#define ASIDACXYSTAGE_H
+#pragma once
 
 #include "ASIPeripheralBase.h"
 #include "MMDevice.h"
 #include "DeviceBase.h"
 
-class CDACXYStage : public ASIPeripheralBase<CXYStageBase, CDACXYStage>
-{
+class CDACXYStage : public ASIPeripheralBase<CXYStageBase, CDACXYStage> {
 public:
     explicit CDACXYStage(const char* name);
     ~CDACXYStage() = default;
 
-	// Device API
-	int Initialize();
-	bool Busy() { return false; }
+    // Device API
+    int Initialize();
+    bool Busy() { return false; }
 
-	// DAC API
-	// Note: added axisLetter to deal with multiple axes
-	int SetGateOpen(bool open, const std::string& axisLetter);
-	int GetGateOpen(bool& open, const std::string& axisLetter);
+    // DAC API
+    // Note: added axisLetter to deal with multiple axes
+    int SetGateOpen(bool open, const std::string& axisLetter);
+    int GetGateOpen(bool& open, const std::string& axisLetter);
 
-	// XYStage API
-	double GetStepSizeXUm() { return 1.0; }
-	double GetStepSizeYUm() { return 1.0; }
-	int GetPositionSteps(long& x, long& y);
-	int SetPositionSteps(long x, long y);
-	int SetRelativePositionSteps(long x, long y);
-	int GetStepLimits(long& xMin, long& xMax, long& yMin, long& yMax);
-	int SetOrigin();
-	int SetXOrigin();
-	int SetYOrigin();
-	int Stop();
-	int Home();
-	int SetHome();
-	int Move(double vx, double vy);
+    // XYStage API
+    double GetStepSizeXUm() { return 1.0; }
+    double GetStepSizeYUm() { return 1.0; }
+    int GetPositionSteps(long& x, long& y);
+    int SetPositionSteps(long x, long y);
+    int SetRelativePositionSteps(long x, long y);
+    int GetStepLimits(long& xMin, long& xMax, long& yMin, long& yMax);
+    int SetOrigin();
+    int SetXOrigin();
+    int SetYOrigin();
+    int Stop();
+    int Home();
+    int SetHome();
+    int Move(double vx, double vy);
 
-	int IsXYStageSequenceable(bool& isSequenceable) const { isSequenceable = ttl_trigger_enabled_; return DEVICE_OK; }
-	int GetXYStageSequenceMaxLength(long& nrEvents) const { nrEvents = ring_buffer_capacity_; return DEVICE_OK; }
+    int IsXYStageSequenceable(bool& isSequenceable) const { isSequenceable = ttl_trigger_enabled_; return DEVICE_OK; }
+    int GetXYStageSequenceMaxLength(long& nrEvents) const { nrEvents = ring_buffer_capacity_; return DEVICE_OK; }
 
-	int StartXYStageSequence();
-	int StopXYStageSequence();
-	int ClearXYStageSequence();
-	int AddToXYStageSequence(double positionX, double positionY);
-	int SendXYStageSequence();
+    int StartXYStageSequence();
+    int StopXYStageSequence();
+    int ClearXYStageSequence();
+    int AddToXYStageSequence(double positionX, double positionY);
+    int SendXYStageSequence();
 
-	// not implemented yet
-	int GetLimitsUm(double& /*xMin*/, double& /*xMax*/, double& /*yMin*/, double& /*yMax*/) { return DEVICE_UNSUPPORTED_COMMAND; }
+    // not implemented yet
+    int GetLimitsUm(double& /*xMin*/, double& /*xMax*/, double& /*yMin*/, double& /*yMax*/) { return DEVICE_UNSUPPORTED_COMMAND; }
 
-	// action interface
-	int OnSaveCardSettings(MM::PropertyBase* pProp, MM::ActionType eAct);
-	int OnRefreshProperties(MM::PropertyBase* pProp, MM::ActionType eAct);
-	int OnConversionFactorX(MM::PropertyBase* pProp, MM::ActionType eAct);
-	int OnConversionFactorY(MM::PropertyBase* pProp, MM::ActionType eAct);
+    // action interface
+    int OnSaveCardSettings(MM::PropertyBase* pProp, MM::ActionType eAct);
+    int OnRefreshProperties(MM::PropertyBase* pProp, MM::ActionType eAct);
+    int OnConversionFactorX(MM::PropertyBase* pProp, MM::ActionType eAct);
+    int OnConversionFactorY(MM::PropertyBase* pProp, MM::ActionType eAct);
 
-	// joystick properties
-	int OnJoystickFastSpeed(MM::PropertyBase* pProp, MM::ActionType eAct);
-	int OnJoystickSlowSpeed(MM::PropertyBase* pProp, MM::ActionType eAct);
-	int OnJoystickMirror(MM::PropertyBase* pProp, MM::ActionType eAct);
-	int OnJoystickRotate(MM::PropertyBase* pProp, MM::ActionType eAct);
-	int OnJoystickEnableDisable(MM::PropertyBase* pProp, MM::ActionType eAct);
+    // joystick properties
+    int OnJoystickFastSpeed(MM::PropertyBase* pProp, MM::ActionType eAct);
+    int OnJoystickSlowSpeed(MM::PropertyBase* pProp, MM::ActionType eAct);
+    int OnJoystickMirror(MM::PropertyBase* pProp, MM::ActionType eAct);
+    int OnJoystickRotate(MM::PropertyBase* pProp, MM::ActionType eAct);
+    int OnJoystickEnableDisable(MM::PropertyBase* pProp, MM::ActionType eAct);
 
-	// ring buffer properties
-	int OnRBDelayBetweenPoints(MM::PropertyBase* pProp, MM::ActionType eAct);
-	int OnRBMode(MM::PropertyBase* pProp, MM::ActionType eAct);
-	int OnRBTrigger(MM::PropertyBase* pProp, MM::ActionType eAct);
-	int OnRBRunning(MM::PropertyBase* pProp, MM::ActionType eAct);
-	int OnUseSequence(MM::PropertyBase* pProp, MM::ActionType eAct);
+    // ring buffer properties
+    int OnRBDelayBetweenPoints(MM::PropertyBase* pProp, MM::ActionType eAct);
+    int OnRBMode(MM::PropertyBase* pProp, MM::ActionType eAct);
+    int OnRBTrigger(MM::PropertyBase* pProp, MM::ActionType eAct);
+    int OnRBRunning(MM::PropertyBase* pProp, MM::ActionType eAct);
+    int OnUseSequence(MM::PropertyBase* pProp, MM::ActionType eAct);
 
-	// signal DAC properties
-	int OnDACModeGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
-	int OnDACGateGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
-	int OnCutoffFreqGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
-	int OnDACModeX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnDACModeGeneric(pProp, eAct, axisLetterX_); }
-	int OnDACModeY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnDACModeGeneric(pProp, eAct, axisLetterY_); }
-	int OnDACGateX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnDACGateGeneric(pProp, eAct, axisLetterX_); }
-	int OnDACGateY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnDACGateGeneric(pProp, eAct, axisLetterY_); }
-	int OnCutoffFreqX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnCutoffFreqGeneric(pProp, eAct, axisLetterX_); }
-	int OnCutoffFreqY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnCutoffFreqGeneric(pProp, eAct, axisLetterY_); }
+    // signal DAC properties
+    int OnDACModeGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
+    int OnDACGateGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
+    int OnCutoffFreqGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
+    int OnDACModeX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnDACModeGeneric(pProp, eAct, axisLetterX_); }
+    int OnDACModeY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnDACModeGeneric(pProp, eAct, axisLetterY_); }
+    int OnDACGateX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnDACGateGeneric(pProp, eAct, axisLetterX_); }
+    int OnDACGateY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnDACGateGeneric(pProp, eAct, axisLetterY_); }
+    int OnCutoffFreqX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnCutoffFreqGeneric(pProp, eAct, axisLetterX_); }
+    int OnCutoffFreqY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnCutoffFreqGeneric(pProp, eAct, axisLetterY_); }
 
-	// single axis properties
-	int OnSAAdvancedX(MM::PropertyBase* pProp, MM::ActionType eAct);
-	int OnSAAdvancedY(MM::PropertyBase* pProp, MM::ActionType eAct);
+    // single axis properties
+    int OnSAAdvancedX(MM::PropertyBase* pProp, MM::ActionType eAct);
+    int OnSAAdvancedY(MM::PropertyBase* pProp, MM::ActionType eAct);
 
-	int OnSAAmplitudeGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
-	int OnSAOffsetGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
-	int OnSAPeriodGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
-	int OnSAModeGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
-	int OnSAPatternGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
-	int OnSAClkSrcGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
-	int OnSAClkPolGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
-	int OnSAPatternByteGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
-	int OnSATTLOutGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
-	int OnSATTLPolGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
+    int OnSAAmplitudeGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
+    int OnSAOffsetGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
+    int OnSAPeriodGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
+    int OnSAModeGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
+    int OnSAPatternGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
+    int OnSAClkSrcGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
+    int OnSAClkPolGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
+    int OnSAPatternByteGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
+    int OnSATTLOutGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
+    int OnSATTLPolGeneric(MM::PropertyBase* pProp, MM::ActionType eAct, const std::string& axisLetter);
 
-	int OnSAAmplitudeX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAAmplitudeGeneric(pProp, eAct, axisLetterX_); }
-	int OnSAAmplitudeY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAAmplitudeGeneric(pProp, eAct, axisLetterY_); }
-	int OnSAOffsetX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAOffsetGeneric(pProp, eAct, axisLetterX_); }
-	int OnSAOffsetY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAOffsetGeneric(pProp, eAct, axisLetterY_); }
-	int OnSAPeriodX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAPeriodGeneric(pProp, eAct, axisLetterX_); }
-	int OnSAPeriodY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAPeriodGeneric(pProp, eAct, axisLetterY_); }
-	int OnSAModeX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAModeGeneric(pProp, eAct, axisLetterX_); }
-	int OnSAModeY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAModeGeneric(pProp, eAct, axisLetterY_); }
-	int OnSAPatternX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAPatternGeneric(pProp, eAct, axisLetterX_); }
-	int OnSAPatternY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAPatternGeneric(pProp, eAct, axisLetterY_); }
-	int OnSAClkSrcX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAClkSrcGeneric(pProp, eAct, axisLetterX_); }
-	int OnSAClkSrcY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAClkSrcGeneric(pProp, eAct, axisLetterY_); }
-	int OnSAClkPolX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAClkPolGeneric(pProp, eAct, axisLetterX_); }
-	int OnSAClkPolY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAClkPolGeneric(pProp, eAct, axisLetterY_); }
-	int OnSAPatternByteX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAPatternByteGeneric(pProp, eAct, axisLetterX_); }
-	int OnSAPatternByteY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAPatternByteGeneric(pProp, eAct, axisLetterY_); }
-	int OnSATTLOutX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSATTLOutGeneric(pProp, eAct, axisLetterX_); }
-	int OnSATTLOutY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSATTLOutGeneric(pProp, eAct, axisLetterY_); }
-	int OnSATTLPolX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSATTLPolGeneric(pProp, eAct, axisLetterX_); }
-	int OnSATTLPolY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSATTLPolGeneric(pProp, eAct, axisLetterY_); }
+    int OnSAAmplitudeX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAAmplitudeGeneric(pProp, eAct, axisLetterX_); }
+    int OnSAAmplitudeY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAAmplitudeGeneric(pProp, eAct, axisLetterY_); }
+    int OnSAOffsetX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAOffsetGeneric(pProp, eAct, axisLetterX_); }
+    int OnSAOffsetY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAOffsetGeneric(pProp, eAct, axisLetterY_); }
+    int OnSAPeriodX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAPeriodGeneric(pProp, eAct, axisLetterX_); }
+    int OnSAPeriodY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAPeriodGeneric(pProp, eAct, axisLetterY_); }
+    int OnSAModeX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAModeGeneric(pProp, eAct, axisLetterX_); }
+    int OnSAModeY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAModeGeneric(pProp, eAct, axisLetterY_); }
+    int OnSAPatternX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAPatternGeneric(pProp, eAct, axisLetterX_); }
+    int OnSAPatternY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAPatternGeneric(pProp, eAct, axisLetterY_); }
+    int OnSAClkSrcX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAClkSrcGeneric(pProp, eAct, axisLetterX_); }
+    int OnSAClkSrcY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAClkSrcGeneric(pProp, eAct, axisLetterY_); }
+    int OnSAClkPolX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAClkPolGeneric(pProp, eAct, axisLetterX_); }
+    int OnSAClkPolY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAClkPolGeneric(pProp, eAct, axisLetterY_); }
+    int OnSAPatternByteX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAPatternByteGeneric(pProp, eAct, axisLetterX_); }
+    int OnSAPatternByteY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSAPatternByteGeneric(pProp, eAct, axisLetterY_); }
+    int OnSATTLOutX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSATTLOutGeneric(pProp, eAct, axisLetterX_); }
+    int OnSATTLOutY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSATTLOutGeneric(pProp, eAct, axisLetterY_); }
+    int OnSATTLPolX(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSATTLPolGeneric(pProp, eAct, axisLetterX_); }
+    int OnSATTLPolY(MM::PropertyBase* pProp, MM::ActionType eAct) { return OnSATTLPolGeneric(pProp, eAct, axisLetterY_); }
 
-	// ttl
-	int OnTTLin(MM::PropertyBase* pProp, MM::ActionType eAct);
-	int OnTTLout(MM::PropertyBase* pProp, MM::ActionType eAct);
+    // ttl
+    int OnTTLin(MM::PropertyBase* pProp, MM::ActionType eAct);
+    int OnTTLout(MM::PropertyBase* pProp, MM::ActionType eAct);
 
 private:
-	// private helper functions
-	int OnSaveJoystickSettings();
+    // private helper functions
+    int OnSaveJoystickSettings();
 
-	// DAC helpers
-	int GetMaxVolts(double& volts, const std::string& axisLetter);
-	int GetMinVolts(double& volts, const std::string& axisLetter);
+    // DAC helpers
+    int GetMaxVolts(double& volts, const std::string& axisLetter);
+    int GetMinVolts(double& volts, const std::string& axisLetter);
 
-	// Properties
-	void CreateSingleAxisRiseTimeProperty(const char axisChar, std::string axisLetter);
+    // Properties
+    void CreateSingleAxisRiseTimeProperty(const char axisChar, std::string axisLetter);
 
-	std::string axisLetterX_;
-	std::string axisLetterY_;
-	double maxvoltsX_; // X axis limits
-	double minvoltsX_;
-	double maxvoltsY_; // Y axis limits
-	double minvoltsY_;
-	bool ring_buffer_supported_;
-	long ring_buffer_capacity_;
-	bool ttl_trigger_supported_;
-	bool ttl_trigger_enabled_;
-	long umToMvX_; // microns to millivolts conversion factors
-	long umToMvY_;
-	std::vector<double> sequenceX_;
-	std::vector<double> sequenceY_;
+    std::string axisLetterX_ = g_EmptyAxisLetterStr; // value determined by extended name
+    std::string axisLetterY_ = g_EmptyAxisLetterStr; // value determined by extended name
+    double maxvoltsX_ = 0.0; // X axis limits
+    double minvoltsX_ = 0.0;
+    double maxvoltsY_ = 0.0; // Y axis limits
+    double minvoltsY_ = 0.0;
+    long ring_buffer_capacity_ = 0;
+    bool ring_buffer_supported_ = false;
+    bool ttl_trigger_supported_ = false;
+    bool ttl_trigger_enabled_ = false;
+    long umToMvX_ = 1; // microns to millivolts conversion factors
+    long umToMvY_ = 1;
+    std::vector<double> sequenceX_{};
+    std::vector<double> sequenceY_{};
 };
-
-#endif // ASIDACXYSTAGE_H

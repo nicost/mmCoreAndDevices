@@ -19,8 +19,6 @@
 //
 // AUTHOR:        Jon Daniels (jon@asiimaging.com) 09/2013
 //
-// BASED ON:      MicroPoint.cpp and others
-//
 
 #include "ASIScanner.h"
 #include "ASITiger.h"
@@ -36,61 +34,22 @@
 
 // as of mid-2017 assume that have only single (two-axis) mmTarget device per Tiger card
 
-///////////////////////////////////////////////////////////////////////////////
-// CScanner
-//
 CScanner::CScanner(const char* name) :
-   ASIPeripheralBase< ::CGalvoBase, CScanner >(name),
-   axisLetterX_(g_EmptyAxisLetterStr),    // value determined by extended name
-   axisLetterY_(g_EmptyAxisLetterStr),    // value determined by extended name
-   unitMultX_(g_ScannerDefaultUnitMult),  // later will try to read actual setting
-   unitMultY_(g_ScannerDefaultUnitMult),  // later will try to read actual setting
-   upperLimitX_(0),   // later will try to read actual setting
-   upperLimitY_(0),   // later will try to read actual setting
-   lowerLimitX_(0),   // later will try to read actual setting
-   lowerLimitY_(0),   // later will try to read actual setting
-   shutterX_(0), // home position, used to turn beam off
-   shutterY_(0), // home position, used to turn beam off
-   lastX_(0),    // cached position before blanking, used for SetIlluminationState
-   lastY_(0),    // cached position before blanking, used for SetIlluminationState
-   illuminationState_(true),
-   saStateX_(),
-   saStateY_(),
-   polygonRepetitions_(0),
-   ring_buffer_supported_(false),
-   laser_side_(0),   // will be set to 1 or 2 if used
-   laserTTLenabled_(false),
-   mmTarget_(false),
-   mmFastCircles_(false),
-   laserTriggerPLogic_(false),
-   targetExposure_(0),
-   targetSettling_(5),
-   axisIndexX_(0),
-   axisIndexY_(1),
-   fastCirclesOn_(false),
-   dac4ch_(false),
-   signalDAC_(false)
-{
-
-   // initialize these structs
-   saStateX_.mode = -1;
-   saStateX_.pattern = -1;
-   saStateY_.mode = -1;
-   saStateY_.pattern = -1;
-
-   if (IsExtendedName(name))  // only set up these properties if we have the required information in the name
-   {
-      axisLetterX_ = GetAxisLetterFromExtName(name);
-      CreateProperty(g_AxisLetterXPropertyName, axisLetterX_.c_str(), MM::String, true);
-      axisLetterY_ = GetAxisLetterFromExtName(name,1);
-      CreateProperty(g_AxisLetterYPropertyName, axisLetterY_.c_str(), MM::String, true);
-   }
+    ASIPeripheralBase< ::CGalvoBase, CScanner >(name) {
+    // only set up these properties if we have the required information in the name
+    if (IsExtendedName(name)) {
+        axisLetterX_ = GetAxisLetterFromExtName(name);
+        CreateProperty(g_AxisLetterXPropertyName, axisLetterX_.c_str(), MM::String, true);
+        axisLetterY_ = GetAxisLetterFromExtName(name, 1);
+        CreateProperty(g_AxisLetterYPropertyName, axisLetterY_.c_str(), MM::String, true);
+    }
 }
 
-int CScanner::Initialize()
-{
-   // call generic Initialize first, this gets hub
-   RETURN_ON_MM_ERROR( PeripheralInitialize() );
+int CScanner::Initialize() {
+    // call generic Initialize first, this gets hub
+    if (const int status = PeripheralInitialize(); status != DEVICE_OK) {
+        return status;
+    }
 
    // read the unit multiplier for X and Y axes
    // ASI's unit multiplier is how many units per degree rotation for the micromirror card
@@ -372,33 +331,33 @@ int CScanner::Initialize()
       dac4ch_ = true;
       if (hub_->IsDefinePresent(build, "SIGNAL_DAC"))
       {
-	signalDAC_ = true;
-	// add output mode property, for SIGNAL_DAC a restart is required and use PR instead of PM
-	// but the list of modules is exactly the same as with the generic DAC_4CH.      
-	pAct = new CPropertyAction (this, &CScanner::OnOutputMode);
-	CreateProperty(g_DACModePropertyName, "0", MM::String, false, pAct);
-	AddAllowedValue(g_DACModePropertyName, g_DACOutputMode_0);
-	AddAllowedValue(g_DACModePropertyName, g_DACOutputMode_1);
-	AddAllowedValue(g_DACModePropertyName, g_DACOutputMode_2);
-	AddAllowedValue(g_DACModePropertyName, g_DACOutputMode_4);
-	AddAllowedValue(g_DACModePropertyName, g_DACOutputMode_5);
-	AddAllowedValue(g_DACModePropertyName, g_DACOutputMode_6);
-	AddAllowedValue(g_DACModePropertyName, g_DACOutputMode_7);
-	UpdateProperty(g_DACModePropertyName);
+    signalDAC_ = true;
+    // add output mode property, for SIGNAL_DAC a restart is required and use PR instead of PM
+    // but the list of modules is exactly the same as with the generic DAC_4CH.      
+    pAct = new CPropertyAction (this, &CScanner::OnOutputMode);
+    CreateProperty(g_DACModePropertyName, "0", MM::String, false, pAct);
+    AddAllowedValue(g_DACModePropertyName, g_DACOutputMode_0);
+    AddAllowedValue(g_DACModePropertyName, g_DACOutputMode_1);
+    AddAllowedValue(g_DACModePropertyName, g_DACOutputMode_2);
+    AddAllowedValue(g_DACModePropertyName, g_DACOutputMode_4);
+    AddAllowedValue(g_DACModePropertyName, g_DACOutputMode_5);
+    AddAllowedValue(g_DACModePropertyName, g_DACOutputMode_6);
+    AddAllowedValue(g_DACModePropertyName, g_DACOutputMode_7);
+    UpdateProperty(g_DACModePropertyName);
       }
       else
       {
-	// add output mode property
+    // add output mode property
         pAct = new CPropertyAction (this, &CScanner::OnOutputMode);
-	CreateProperty(g_ScannerOutputModePropertyName, "0", MM::String, false, pAct);
-	AddAllowedValue(g_ScannerOutputModePropertyName, g_DACOutputMode_0);
-	AddAllowedValue(g_ScannerOutputModePropertyName, g_DACOutputMode_1);
-	AddAllowedValue(g_ScannerOutputModePropertyName, g_DACOutputMode_2);
-	AddAllowedValue(g_ScannerOutputModePropertyName, g_DACOutputMode_4);
-	AddAllowedValue(g_ScannerOutputModePropertyName, g_DACOutputMode_5);
-	AddAllowedValue(g_ScannerOutputModePropertyName, g_DACOutputMode_6);
-	AddAllowedValue(g_ScannerOutputModePropertyName, g_DACOutputMode_7);
-	UpdateProperty(g_ScannerOutputModePropertyName);
+    CreateProperty(g_ScannerOutputModePropertyName, "0", MM::String, false, pAct);
+    AddAllowedValue(g_ScannerOutputModePropertyName, g_DACOutputMode_0);
+    AddAllowedValue(g_ScannerOutputModePropertyName, g_DACOutputMode_1);
+    AddAllowedValue(g_ScannerOutputModePropertyName, g_DACOutputMode_2);
+    AddAllowedValue(g_ScannerOutputModePropertyName, g_DACOutputMode_4);
+    AddAllowedValue(g_ScannerOutputModePropertyName, g_DACOutputMode_5);
+    AddAllowedValue(g_ScannerOutputModePropertyName, g_DACOutputMode_6);
+    AddAllowedValue(g_ScannerOutputModePropertyName, g_DACOutputMode_7);
+    UpdateProperty(g_ScannerOutputModePropertyName);
       }
    }
    else  // original MEMS scanner firmware
@@ -555,9 +514,9 @@ int CScanner::Initialize()
       }
 
       if (FirmwareVersionAtLeast(3.14)) {
-	// in 3.50 added bit 7 of SPIM mode for smooth slice (e.g. constant galvo scan for scope)
+    // in 3.50 added bit 7 of SPIM mode for smooth slice (e.g. constant galvo scan for scope)
         pAct = new CPropertyAction (this, &CScanner::OnSPIMSmoothSliceEnable);
-	CreateProperty(g_SPIMSmoothSliceEnable, g_NoState, MM::String, false, pAct);
+    CreateProperty(g_SPIMSmoothSliceEnable, g_NoState, MM::String, false, pAct);
         AddAllowedValue(g_SPIMSmoothSliceEnable, g_YesState);
         AddAllowedValue(g_SPIMSmoothSliceEnable, g_NoState);
         UpdateProperty(g_SPIMSmoothSliceEnable);
@@ -1308,7 +1267,7 @@ int CScanner::OnOutputMode(MM::PropertyBase* pProp, MM::ActionType eAct)
       }
       else
       {
-	  command << "PM " << axisLetterX_ << "?";
+      command << "PM " << axisLetterX_ << "?";
       }
       response << axisLetterX_ << "=";
       RETURN_ON_MM_ERROR ( hub_->QueryCommandVerify(command.str(), response.str()));
@@ -1353,7 +1312,7 @@ int CScanner::OnOutputMode(MM::PropertyBase* pProp, MM::ActionType eAct)
       }
       else
       {
-	  command << "PM " << axisLetterX_ << "=" << tmp << " " << axisLetterY_ << "=" << tmp;
+      command << "PM " << axisLetterX_ << "=" << tmp << " " << axisLetterY_ << "=" << tmp;
       }
       RETURN_ON_MM_ERROR ( hub_->QueryCommandVerify(command.str(), ":A") );
    }
@@ -1795,7 +1754,7 @@ int CScanner::OnSAPatternX(MM::PropertyBase* pProp, MM::ActionType eAct)
          case 0: success = pProp->Set(g_SAPattern_0); break;
          case 1: success = pProp->Set(g_SAPattern_1); break;
          case 2: success = pProp->Set(g_SAPattern_2); break;
-		 case 3: success = pProp->Set(g_SAPattern_3); break;
+         case 3: success = pProp->Set(g_SAPattern_3); break;
          case 4: success = pProp->Set(g_SAPattern_4); break;
          default:success = 0;                      break;
       }
@@ -1970,7 +1929,7 @@ int CScanner::OnSAPatternY(MM::PropertyBase* pProp, MM::ActionType eAct)
          case 2: success = pProp->Set(g_SAPattern_2); break;
          case 3: success = pProp->Set(g_SAPattern_3); break;
          case 4: success = pProp->Set(g_SAPattern_4); break;
-		 default:success = 0;                      break;
+         default:success = 0;                      break;
       }
       if (!success)
          return DEVICE_INVALID_PROPERTY_VALUE;

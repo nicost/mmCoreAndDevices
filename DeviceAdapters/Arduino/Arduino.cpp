@@ -17,6 +17,7 @@
 #include <sstream>
 #include <cstdio>
 #include <cstdint>
+#include <vector>
 
 #ifdef WIN32
    #define WIN32_LEAN_AND_MEAN
@@ -124,7 +125,13 @@ MODULE_API void DeleteDevice(MM::Device* pDevice)
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
 CArduinoHub::CArduinoHub() :
+   // Order matches member declaration order in the header.
    initialized_ (false),
+   portAvailable_(false),
+   invertedLogic_(false),
+   timedOutputActive_(false),
+   version_(0),
+   extendedVersion_(0),
    maxNumPatterns_(12),
    maxDASeqLength_(0),
    numDAChannels_(2),
@@ -133,15 +140,10 @@ CArduinoHub::CArduinoHub() :
    daMaxV_(g_MaxDAChannels + 1, 0.0),
    daRangeKnown_(g_MaxDAChannels + 1, false),
    daNumSteps_(g_MaxDAChannels + 1, 4095UL),
-   version_(0),
-   extendedVersion_(0),
    magnifier_(0),
    switchState_ (0),
    shutterState_ (0)
 {
-   portAvailable_ = false;
-   invertedLogic_ = false;
-   timedOutputActive_ = false;
 
    InitializeDefaultErrorMessages();
 
@@ -206,7 +208,15 @@ int CArduinoHub::GetControllerVersion(int& version)
 
    if (answer.size() > 7) {
       std::string extended_version_string = answer.substr(7);
-      extendedVersion_ = std::stol(extended_version_string);
+      // The device on this port may not be an Arduino (we are also called
+      // during device detection), so guard against a non-numeric reply that
+      // would otherwise throw an uncaught std::invalid_argument/out_of_range.
+      try {
+         extendedVersion_ = std::stol(extended_version_string);
+      }
+      catch (const std::exception&) {
+         return ERR_BOARD_NOT_FOUND;
+      }
    }
 
    // Check version number of the Arduino
@@ -343,6 +353,8 @@ int CArduinoHub::Initialize()
             return ret;
          bytesRead += br;
       }
+      if (bytesRead < nrBytes)
+         return ERR_COMMUNICATION;
 
       if (answer[0] != 32)
          return ERR_COMMUNICATION;
@@ -374,6 +386,8 @@ int CArduinoHub::Initialize()
             return ret;
          bytesRead += br;
       }
+      if (bytesRead < nrBytes)
+         return ERR_COMMUNICATION;
 
       if (answer[0] != 34)
          return ERR_COMMUNICATION;
@@ -397,6 +411,8 @@ int CArduinoHub::Initialize()
             return ret;
          bytesRead += br;
       }
+      if (bytesRead < nrBytes)
+         return ERR_COMMUNICATION;
 
       if (answer2[0] != 35)
          return ERR_COMMUNICATION;
@@ -834,6 +850,8 @@ int CArduinoSwitch::LoadSequence(unsigned size, unsigned char* seq)
                return ret;
             bytesRead += br;
          }
+         if (bytesRead < nrBytes)
+            return ERR_COMMUNICATION;
          if (answer[0] != 5)
             return ERR_COMMUNICATION;
       }
@@ -854,6 +872,8 @@ int CArduinoSwitch::LoadSequence(unsigned size, unsigned char* seq)
             return ret;
          bytesRead += br;
       }
+      if (bytesRead < nrBytes)
+         return ERR_COMMUNICATION;
       if (answer[0] != 6)
          return ERR_COMMUNICATION;
    }
@@ -888,6 +908,8 @@ int CArduinoSwitch::LoadSequence(unsigned size, unsigned char* seq)
             return ret;
          bytesRead += br;
       }
+      if (bytesRead < nrBytes)
+         return ERR_COMMUNICATION;
       if (answer[0] != 33)
          return ERR_COMMUNICATION;
 
@@ -928,23 +950,29 @@ int CArduinoSwitch::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
    } 
    else if (eAct == MM::AfterLoadSequence)                                   
    {                                                                         
-      std::vector<std::string> sequence = pProp->GetSequence();              
-      if (sequence.size() > numPatterns_)                                
-         return DEVICE_SEQUENCE_TOO_LARGE;                                   
-      unsigned char* seq = new unsigned char[sequence.size()];               
-      for (unsigned int i=0; i < sequence.size(); i++)                       
+      std::vector<std::string> sequence = pProp->GetSequence();
+      if (sequence.size() > numPatterns_)
+         return DEVICE_SEQUENCE_TOO_LARGE;
+      // Use a vector so the buffer is freed on every return path (the
+      // old raw new[] leaked when LoadSequence returned an error).
+      std::vector<unsigned char> seq(sequence.size());
+      for (unsigned int i=0; i < sequence.size(); i++)
       {
          std::istringstream is (sequence[i]);
-         unsigned char val;
+         // Parse as an integer: reading into an unsigned char would store
+         // the first character (e.g. '4' = 0x34) instead of the value 4.
+         // Validate: reject non-numeric input (which would silently stay 0),
+         // trailing garbage, and values that don't fit in a single byte.
+         unsigned int val = 0;
          is >> val;
-         seq[i] = val;
-      }                                                                      
+         if (is.fail() || !(is >> std::ws).eof() || val > 255)
+            return DEVICE_INVALID_PROPERTY_VALUE;
+         seq[i] = (unsigned char) val;
+      }
       // Note: LoadSequence calls hub_->GetLock()
-      int ret = LoadSequence((unsigned) sequence.size(), seq);
-      if (ret != DEVICE_OK)                                                  
-         return ret;                                                         
-                                                                             
-      delete[] seq;                                                          
+      int ret = LoadSequence((unsigned) sequence.size(), seq.data());
+      if (ret != DEVICE_OK)
+         return ret;
    }                                                                         
    else if (eAct == MM::StartSequence)
    { 
@@ -968,6 +996,8 @@ int CArduinoSwitch::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
             return ret;
          bytesRead += br;
       }
+      if (bytesRead < nrBytes)
+         return ERR_COMMUNICATION;
       if (answer[0] != 8)
          return ERR_COMMUNICATION;
    }
@@ -992,6 +1022,8 @@ int CArduinoSwitch::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
             return ret;
          bytesRead += br;
       }
+      if (bytesRead < nrBytes)
+         return ERR_COMMUNICATION;
       if (answer[0] != 9)
          return ERR_COMMUNICATION;
 
@@ -1363,6 +1395,10 @@ int CArduinoDA::Initialize()
       AddAllowedValue("Sequence", g_On);
       AddAllowedValue("Sequence", g_Off);
    }
+   // Refuse to initialize a DA device for a channel the firmware does not
+   // expose (e.g. DAC3-8 on an original Arduino that reports 2 channels).
+   if (channel_ < 1 || (unsigned) channel_ > maxChannel_)
+      return DEVICE_INVALID_PROPERTY_VALUE;
 
    // set property list
    // -----------------
@@ -1437,6 +1473,8 @@ int CArduinoDA::WriteSignal(double volts)
    long value = (span > 0.0) ? (long) ((volts - refMin) / span * numSteps_) : 0;
    if (value < 0) value = 0;
    if (value > (long) numSteps_) value = (long) numSteps_;
+   if (maxV_ <= 0.0)
+      return DEVICE_INVALID_PROPERTY_VALUE;
 
    std::ostringstream os;
     os << "Volts: " << volts << " Max Voltage: " << maxV_ << " digital value: " << value;
@@ -1673,7 +1711,17 @@ int CArduinoDA::OnMaxVolt(MM::PropertyBase* pProp, MM::ActionType eAct)
    }
    else if (eAct == MM::AfterSet)
    {
-      pProp->Get(maxV_);
+      double maxV;
+      pProp->Get(maxV);
+      // A zero (or negative) max voltage would cause a divide-by-zero in
+      // WriteSignal; reject it, restore the previous value on the property,
+      // and report a standard invalid-value error.
+      if (maxV <= 0.0)
+      {
+         pProp->Set(maxV_);
+         return DEVICE_INVALID_PROPERTY_VALUE;
+      }
+      maxV_ = maxV;
       if (hasPhysRange_ && maxV_ > physMaxV_)
          maxV_ = physMaxV_;
       if (HasProperty("Volts"))
@@ -1838,6 +1886,9 @@ int CArduinoShutter::Fire(double /*deltaT*/)
 
 int CArduinoShutter::WriteToPort(long value)
 {
+   if (!hub_ || !hub_->IsPortAvailable())
+      return ERR_NO_PORT_SET;
+
    const std::lock_guard<std::mutex> lock(hub_->GetLock());
 
    value = ((1L << hub_->GetNumDigitalPins()) - 1) & value;
@@ -1952,8 +2003,10 @@ CArduinoInput::~CArduinoInput()
 
 int CArduinoInput::Shutdown()
 {
-   if (initialized_)
-      delete(mThread_);
+   // Delete unconditionally: mThread_ is null-initialized, so this is safe
+   // even if Initialize() failed before setting initialized_.
+   delete mThread_;
+   mThread_ = 0;
    initialized_ = false;
    return DEVICE_OK;
 }
@@ -2073,6 +2126,11 @@ int CArduinoInput::ReportStateChange(long newState)
 
 int CArduinoInput::GetAnalogInput(long channel, long* value)
 {
+   // channel is sent as a single byte; reject out-of-range values rather
+   // than silently truncating them onto the wire.
+   if (channel < 0 || channel > 255)
+      return DEVICE_INVALID_INPUT_PARAM;
+
    const std::lock_guard<std::mutex> lock(hub_->GetLock());
 
    unsigned char command[2] = { 41, (unsigned char) channel };
@@ -2138,6 +2196,10 @@ int CArduinoInput::OnAnalogInput(MM::PropertyBase* pProp, MM::ActionType eAct, l
 
    if (eAct == MM::BeforeGet)
    {
+      // channel is sent as a single byte; reject out-of-range values.
+      if (channel < 0 || channel > 255)
+         return DEVICE_INVALID_INPUT_PARAM;
+
       const std::lock_guard<std::mutex> lock(hub_->GetLock());
 
       unsigned char command[2] = { 41, (unsigned char) channel };
@@ -2204,6 +2266,8 @@ int CArduinoInput::ReadNBytes(CArduinoHub* hub, unsigned int n, unsigned char* a
          return ret;
       bytesRead += bR;
    }
+   if (bytesRead < n)
+      return ERR_COMMUNICATION;
 
    return DEVICE_OK;
 }
@@ -2248,9 +2312,12 @@ int CArduinoMagnifier::Initialize()
    }
 
    std::string userString = "Magnification At State: ";
-   for (long state = 0; state < magnifications_.size(); state++)
+   // magnifications_ is populated by OnNumberOfMagnifications, which runs as a
+   // pre-init property before Initialize(), so it already holds the requested
+   // number of entries here.
+   for (size_t state = 0; state < magnifications_.size(); state++)
    {
-      CPropertyActionEx* pActEx = new CPropertyActionEx(this, &CArduinoMagnifier::OnSetMagnification, state);
+      CPropertyActionEx* pActEx = new CPropertyActionEx(this, &CArduinoMagnifier::OnSetMagnification, (long) state);
       std::ostringstream propName;
       propName << userString << state;
       CreateFloatProperty(propName.str().c_str(), 1.0, false, pActEx);
@@ -2341,11 +2408,12 @@ int CArduinoMagnifier::OnSetMagnification(MM::PropertyBase* pProp, MM::ActionTyp
 // ArduinoInputMonitorThread implementation
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 ArduinoInputMonitorThread::ArduinoInputMonitorThread(CArduinoInput& aInput) :
-   stop_(false),
+   // Order matches member declaration order in the header.
    state_(0),
-   aInput_(aInput)
+   aInput_(aInput),
+   stop_(false)
 {
-   for (int i = 0; i < 6; i++)
+   for (int i = 0; i < g_NumAnalogStates; i++)
       analogState_[i] = 0;
 }
 
@@ -2373,7 +2441,8 @@ int ArduinoInputMonitorThread::svc()
          state_ = state;
       }
 
-      for (int i = aInput_.GetStartPin(); i <= aInput_.GetEndPin(); i++)
+      for (int i = aInput_.GetStartPin();
+            i <= aInput_.GetEndPin() && i < g_NumAnalogStates; i++)
       {
          long analogValue;
          ret = aInput_.GetAnalogInput(i, &analogValue);

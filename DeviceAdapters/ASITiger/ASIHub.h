@@ -20,15 +20,13 @@
 // AUTHOR:        Jon Daniels (jon@asiimaging.com) 09/2013
 //
 
-#ifndef ASIHUB_H
-#define ASIHUB_H
+#pragma once
 
 #include "ASIBase.h"
 #include "MMDevice.h"
 #include "DeviceBase.h"
 #include "DeviceThreads.h"
 #include <string>
-
 
 ////////////////////////////////////////////////////////////////
 // *********** generic ASI comm class *************************
@@ -39,8 +37,7 @@
 // inherits from this class.
 ////////////////////////////////////////////////////////////////
 
-class ASIHub : public ASIBase<HubBase, ASIHub>
-{
+class ASIHub : public ASIBase<HubBase, ASIHub> {
 public:
     explicit ASIHub();
     ~ASIHub() = default;
@@ -51,12 +48,15 @@ public:
    // gets the response to a command but waits a certain time for the response to come instead of looking for a terminator
    // also doesn't necessarily wait for a complete response
    int QueryCommandUnterminatedResponse(const char *command, const long timeoutMs, unsigned long replyLength);
-   int QueryCommandUnterminatedResponse(const char *command, const long timeoutMs) 
-   {	   return  QueryCommandUnterminatedResponse(command, timeoutMs,1);   }
-   int QueryCommandUnterminatedResponse(const std::string &command, const long timeoutMs)
-      { return QueryCommandUnterminatedResponse(command.c_str(), timeoutMs,1); }
-   int QueryCommandUnterminatedResponse(const std::string &command, const long timeoutMs, unsigned long replyLength)
-   {   return QueryCommandUnterminatedResponse(command.c_str(), timeoutMs, replyLength);   }
+   int QueryCommandUnterminatedResponse(const char *command, const long timeoutMs) {
+       return QueryCommandUnterminatedResponse(command, timeoutMs, 1);
+   }
+   int QueryCommandUnterminatedResponse(const std::string &command, const long timeoutMs) {
+       return QueryCommandUnterminatedResponse(command.c_str(), timeoutMs, 1);
+   }
+   int QueryCommandUnterminatedResponse(const std::string &command, const long timeoutMs, unsigned long replyLength) {
+       return QueryCommandUnterminatedResponse(command.c_str(), timeoutMs, replyLength);
+   }
 
    int QueryCommandLongReply(const char *command, const char *replyTerminator);  // all variants call this
    int QueryCommandLongReply(const char *command) { return QueryCommandLongReply(command, g_SerialTerminatorMultiLine); }
@@ -101,12 +101,12 @@ public:
    int ParseAnswerAfterUnderscore(unsigned int &val);  // finds next number after underscore and returns as long int
    int ParseAnswerAfterColon(double &val);  // finds next number after colon and returns as float
    int ParseAnswerAfterColon(long &val);  // finds next number after colon and returns as long int
-	int ParseAnswerAfterPosition(unsigned int pos, double &val);  // finds next number after character position specified and returns as float
-	int ParseAnswerAfterPosition(unsigned int pos, long &val);    // finds next number after character position specified and returns as long int
+    int ParseAnswerAfterPosition(unsigned int pos, double &val);  // finds next number after character position specified and returns as float
+    int ParseAnswerAfterPosition(unsigned int pos, long &val);    // finds next number after character position specified and returns as long int
    int ParseAnswerAfterPosition(unsigned int pos, unsigned int &val);    // finds next number after character position specified and returns as unsigned int
    int ParseAnswerAfterPosition2(double &val);  // finds next number after character position 2 and returns as float
-	int ParseAnswerAfterPosition2(long &val);    // finds next number after character position 2 and returns as long int
-	int ParseAnswerAfterPosition2(unsigned int &val);    // finds next number after character position 2 and returns as unsigned int
+    int ParseAnswerAfterPosition2(long &val);    // finds next number after character position 2 and returns as long int
+    int ParseAnswerAfterPosition2(unsigned int &val);    // finds next number after character position 2 and returns as unsigned int
    int ParseAnswerAfterPosition3(double &val);  // finds next number after character position 3 and returns as float
    int ParseAnswerAfterPosition3(long &val);    // finds next number after character position 3 and returns as long int
    int ParseAnswerAfterPosition3(unsigned int &val);    // finds next number after character position 3 and returns as unsigned int
@@ -148,28 +148,26 @@ public:
    int OnSerialCommandOnlySendChanged(MM::PropertyBase* pProp, MM::ActionType eAct);
 
 protected:
-   std::string port_;         // port to use for communication
+    std::string port_ = "Undefined"; // serial port to use for communication
 
 private:
-	int ParseErrorReply() const;
-	static std::string EscapeControlCharacters(const std::string &v);
-	static std::string UnescapeControlCharacters(const std::string &v0);
-	static std::vector<char> ConvertStringVector2CharVector(const std::vector<std::string> &v);
-	static std::vector<int> ConvertStringVector2IntVector(const std::vector<std::string> &v);
+    int ParseErrorReply() const;
+    static std::string EscapeControlCharacters(const std::string &v);
+    static std::string UnescapeControlCharacters(const std::string &v0);
+    static std::vector<char> ConvertStringVector2CharVector(const std::vector<std::string> &v);
+    static std::vector<int> ConvertStringVector2IntVector(const std::vector<std::string> &v);
 
-   std::string serialAnswer_;      // the last answer received from any communication with the controller
-   std::string manualSerialAnswer_; // last answer received when the SerialCommand property was used
-   std::string serialCommand_;     // the last command sent, or can be set for calling commands without args
-   std::string serialTerminator_;  // only used when parsing command sent via OnSerialCommand action handler
-   long serialRepeatDuration_; // for how long total time the command is repeatedly sent
-   long serialRepeatPeriod_;  // how often in ms the command is sent
-   bool serialOnlySendChanged_;        // if true the serial command is only sent when it has changed
-   MMThreadLock threadLock_;  // used to lock thread during serial transaction
-   bool updatingSharedProperties_;
-   std::map<std::string, std::string> deviceMap_;  // to implement properties shared between devices
-        // key is the device name, value is the Tiger address (normally a single character, see note about addressChar_ in ASIPeripheralBase
+    MMThreadLock threadLock_; // used to lock thread during serial transaction
+
+    std::map<std::string, std::string> deviceMap_{}; // to implement properties shared between devices
+    // key is the device name, value is the Tiger address (normally a single character, see note about addressChar_ in ASIPeripheralBase
+
+    std::string serialAnswer_{};       // last answer received from any communication with the controller
+    std::string manualSerialAnswer_{}; // last answer received when the SerialCommand property was used
+    std::string serialCommand_{};      // last command sent, or can be set for calling commands without args
+    std::string serialTerminator_ = g_SerialTerminatorDefault; // only used when parsing command sent via OnSerialCommand action handler
+    long serialRepeatDuration_ = 0; // for how long total time the command is repeatedly sent
+    long serialRepeatPeriod_ = 500; // how often in ms the command is sent
+    bool serialOnlySendChanged_ = true; // if true the serial command is only sent when it has changed
+    bool updatingSharedProperties_ = false;
 };
-
-
-
-#endif // ASIHUB_H

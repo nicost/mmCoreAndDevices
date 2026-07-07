@@ -30,23 +30,10 @@
 #include <string>
 #include <vector>
 
-
-///////////////////////////////////////////////////////////////////////////////
-// ASIHub implementation
-// this implements serial communication, and could be used as parent class
-//   for future hubs besides TigerComm
+// ASIHub implements serial communication
 ASIHub::ASIHub() :
-      ASIBase< ::HubBase, ASIHub >(""), // do not pass a name
-      port_("Undefined"),
-      serialAnswer_(""),
-      manualSerialAnswer_(""),
-      serialCommand_(""),
-      serialTerminator_(g_SerialTerminatorDefault),
-      serialRepeatDuration_(0),
-      serialRepeatPeriod_(500),
-      serialOnlySendChanged_(true),
-      updatingSharedProperties_(false)
-{
+    ASIBase< ::HubBase, ASIHub >("") { // Note: do not pass a name
+
    CPropertyAction* pAct = new CPropertyAction(this, &ASIHub::OnPort);
    CreateProperty(MM::g_Keyword_Port, "Undefined", MM::String, false, pAct, true);
 
@@ -102,7 +89,7 @@ int ASIHub::QueryCommandUnterminatedResponse(const char *command, const long tim
 
    while (ret == DEVICE_OK && total_read < replyLength && !timerOut.expired(GetCurrentMMTime())) {
       ret = ReadFromComPort(port_.c_str(), (unsigned char*)rcvBuf, MM::MaxStrLength, read);
-	  total_read += read;
+      total_read += read;
    }
    if (total_read > 0)
    {
