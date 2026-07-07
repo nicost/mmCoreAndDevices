@@ -118,6 +118,30 @@
  *   A min/max voltage of 0/0 means the voltage range is not known.
  *   Available as of version 6
  *
+ * Get max number of DA sequence events per channel: 37
+ *   Returns: 37 followed by the max number of events per channel, unsigned int, 2 bytes, highbyte first
+ *   Available as of version 6
+ *
+ * Upload a DA voltage sequence for one channel: 38xccvv...
+ *   Where x is the DA channel (0-based), cc is the number of events (unsigned int, 2 bytes,
+ *   highbyte first), and vv... is cc pairs of bytes, each pair a 12-bit significant number
+ *   (msb, lsb) as in command 3.
+ *   Controller returns 38, channel, then the number of events actually stored (2 bytes,
+ *   highbyte first) - a value less than cc means the upload was truncated (e.g. timed out).
+ *   Available as of version 6
+ *
+ * Start DA (analog) triggered sequence output: 39
+ *   Every DA channel with a non-empty uploaded sequence advances to its next value on each
+ *   transition (rising or falling) of the trigger input pin (the same pin used for digital
+ *   triggered mode, command 8). All channels share one step index, so channels with
+ *   sequences of equal length stay in lock-step. Controller returns 39.
+ *   Available as of version 6
+ *
+ * Stop DA (analog) triggered sequence output: 43
+ *   Controller returns 43x where x is the number of triggers received during the last DA
+ *   sequence run. Output is left at its last value (not forced to zero).
+ *   Available as of version 6
+ *
  *
  * Read digital state of analogue input pins 0-5: 40
  *   Returns raw value of PINC (two high bits are not used)
@@ -136,7 +160,13 @@
 
  /************* For DA accessory chips, edit this section ********/
 
-// If you have one of these DA chips attached, uncomment the appropriate define
+// If you have one of these DA chips attached, uncomment the appropriate define.
+// WARNING: if none of these are defined, numDAChannels_ below becomes 0 and every
+// DA channel silently does nothing - single-value writes (command 3) and sequence
+// uploads (command 38) will report "success" or "0 events stored" respectively,
+// with no error, even though the host may already have "Volts"/"MaxVolt"/"Sequence"
+// properties configured for DA channels from a previous session. Double-check this
+// matches your attached hardware before troubleshooting anything else DA-related.
 // #define TLV5618
 // #define TLV56x8
 // #define MCP4728
@@ -215,7 +245,19 @@ const uint8_t numDigitalPins_ = 6;
    bool blankOnHigh_ = false;
    bool triggerMode_ = false;
    boolean triggerState_ = false;
- 
+
+   // Analog (DA) voltage sequence support - mirrors the digital pattern sequence above, but
+   // stores a 12-bit code sequence per DA channel and is driven off the same trigger pin
+   // (inPin_) via a single shared step index (see command 39's doc comment).
+   const uint8_t MAX_DA_CHANNELS_ = 4;      // largest numDAChannels_ across all chip branches
+   const uint16_t DA_SEQUENCELENGTH = 32;   // per channel; increase with care - see SEQUENCELENGTH comment above
+   uint16_t daSequence_[MAX_DA_CHANNELS_][DA_SEQUENCELENGTH];
+   uint16_t daSequenceLength_[MAX_DA_CHANNELS_] = {0, 0, 0, 0};
+   volatile long daTriggerNr_;    // total # of triggers in this DA-sequence run
+   volatile long daSequenceNr_;   // shared step index into every channel's daSequence_[]
+   bool daTriggerMode_ = false;
+   boolean daTriggerState_ = false;
+
  void setup() {
    // Higher speeds do not appear to be reliable
    Serial.begin(57600);
@@ -312,7 +354,8 @@ const uint8_t numDigitalPins_ = 6;
               msb &= B00001111;
               if (waitForSerial(timeOut_)) {
                 byte lsb = Serial.read();
-                analogueOut(channel, msb, lsb);
+                if (channel >= 0 && channel < numDAChannels_ && channel < MAX_DA_CHANNELS_)
+                  analogueOut(channel, msb, lsb);
                 Serial.write( byte(3));
                 Serial.write( channel);
                 Serial.write(msb);
@@ -532,6 +575,52 @@ const uint8_t numDigitalPins_ = 6;
          }
          break;
 
+       // Returns the maximum number of DA sequence events that can be uploaded per channel
+       case 37:
+         Serial.write(byte(37));
+         Serial.write(highByte(DA_SEQUENCELENGTH));
+         Serial.write(lowByte(DA_SEQUENCELENGTH));
+         break;
+
+       // Uploads a DA voltage sequence for one channel
+       case 38:
+         if (waitForSerial(timeOut_)) {
+           int channel = Serial.read();
+           if (waitForSerial(timeOut_)) {
+             unsigned int hi = Serial.read();
+             if (waitForSerial(timeOut_)) {
+               unsigned int lo = Serial.read();
+               unsigned int expectedCount = (hi << 8) | lo;
+               unsigned int count = 0;
+               if (channel >= 0 && channel < numDAChannels_ && channel < MAX_DA_CHANNELS_
+                   && expectedCount <= DA_SEQUENCELENGTH) {
+                 while (count < expectedCount && waitForSerial(timeOut_)) {
+                   byte msb = Serial.read();
+                   if (!waitForSerial(timeOut_)) break;
+                   byte lsb = Serial.read();
+                   daSequence_[channel][count] = (((uint16_t)(msb & 0x0F)) << 8) | (uint16_t) lsb;
+                   count++;
+                 }
+                 daSequenceLength_[channel] = count;
+               }
+               Serial.write(byte(38));
+               Serial.write(byte(channel));
+               Serial.write(highByte(count));
+               Serial.write(lowByte(count));
+             }
+           }
+         }
+         break;
+
+       // Starts DA (analog) triggered sequence output
+       case 39:
+         daSequenceNr_ = 0;
+         daTriggerNr_ = 0;
+         daTriggerState_ = digitalRead(inPin_) == HIGH;
+         daTriggerMode_ = true;
+         Serial.write(byte(39));
+         break;
+
        case 40:
          Serial.write( byte(40));
          Serial.write( PINC);
@@ -569,6 +658,13 @@ const uint8_t numDigitalPins_ = 6;
          }
          break;
 
+       // Stops DA (analog) triggered sequence output
+       case 43:
+         daTriggerMode_ = false;
+         Serial.write(byte(43));
+         Serial.write(daTriggerNr_);
+         break;
+
        }
     }
     
@@ -603,8 +699,23 @@ const uint8_t numDigitalPins_ = 6;
       }  else {
         if (! (PIND & inPinBit_))
           PORTB = 0;
-        else  
+        else
           PORTB = currentPattern_;
+      }
+    }
+
+    if (daTriggerMode_) {
+      boolean tmp = PIND & inPinBit_;
+      if (tmp != daTriggerState_) {
+        for (uint8_t ch = 0; ch < numDAChannels_ && ch < MAX_DA_CHANNELS_; ch++) {
+          if (daSequenceLength_[ch] > 0) {
+            uint16_t code = daSequence_[ch][daSequenceNr_ % daSequenceLength_[ch]];
+            analogueOut(ch, (byte)(code >> 8), (byte)(code & 0xFF));
+          }
+        }
+        daSequenceNr_++;
+        daTriggerNr_++;
+        daTriggerState_ = tmp;
       }
     }
 }

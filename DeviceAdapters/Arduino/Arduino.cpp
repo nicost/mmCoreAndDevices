@@ -126,6 +126,7 @@ MODULE_API void DeleteDevice(MM::Device* pDevice)
 CArduinoHub::CArduinoHub() :
    initialized_ (false),
    maxNumPatterns_(12),
+   maxDASeqLength_(0),
    numDAChannels_(2),
    numDigitalPins_(6),
    daMinV_(g_MaxDAChannels + 1, 0.0),
@@ -442,6 +443,25 @@ int CArduinoHub::Initialize()
             daRangeKnown_[idx] = true;
          }
       }
+
+      unsigned char seqLenCommand[1] = { 37 };
+      ret = WriteToComPortH(seqLenCommand, 1);
+      if (ret != DEVICE_OK) return ret;
+
+      MM::MMTime seqLenStartTime = GetCurrentMMTime();
+      const unsigned int seqLenNrBytes = 3;
+      unsigned long seqLenBytesRead = 0;
+      unsigned char seqLenAnswer[seqLenNrBytes] = { 0, 0, 0 };
+      while ((seqLenBytesRead < seqLenNrBytes) && ((GetCurrentMMTime() - seqLenStartTime).getMsec() < 250)) {
+         unsigned long br;
+         ret = ReadFromComPortH(seqLenAnswer + seqLenBytesRead, seqLenNrBytes - seqLenBytesRead, br);
+         if (ret != DEVICE_OK) return ret;
+         seqLenBytesRead += br;
+      }
+      if (seqLenAnswer[0] != 37)
+         return ERR_COMMUNICATION;
+
+      maxDASeqLength_ = (((unsigned int) seqLenAnswer[1]) << 8) | seqLenAnswer[2];
    }
 
    pAct = new CPropertyAction(this, &CArduinoHub::OnExtendedVersion);
@@ -1254,7 +1274,10 @@ CArduinoDA::CArduinoDA(int channel) :
       physMinV_(0.0),
       physMaxV_(5.0),
       hasPhysRange_(false),
-      numSteps_(4095)
+      numSteps_(4095),
+      sequenceOn_(true),
+      daSeqSupported_(false),
+      daMaxSeqLength_(0)
 {
    InitializeDefaultErrorMessages();
 
@@ -1264,6 +1287,12 @@ CArduinoDA::CArduinoDA(int channel) :
    SetErrorText(ERR_WRITE_FAILED, "Failed to write data to the device");
    SetErrorText(ERR_CLOSE_FAILED, "Failed closing the device");
    SetErrorText(ERR_NO_PORT_SET, "Hub Device not found.  The Arduino Hub device is needed to create this device");
+   SetErrorText(ERR_DA_CHANNEL_NOT_AVAILABLE, "This DA channel is not available on the connected firmware."
+      "  Either no DA chip is compiled into the firmware (all #define TLV5618/TLV56x8/MCP4728 lines are"
+      " commented out), or this channel number exceeds the firmware's reported DA channel count.");
+   SetErrorText(ERR_DA_SEQUENCE_UPLOAD_FAILED, "The firmware did not store the full DA voltage sequence that was"
+      " sent (it reported storing fewer events than were uploaded). This usually means the DA channel is not"
+      " actually available on the connected firmware.");
 
    CPropertyAction* pAct = new CPropertyAction(this, &CArduinoDA::OnMaxVolt);
    CreateProperty("MaxVolt", "5.0", MM::Float, false, pAct, true);
@@ -1308,12 +1337,31 @@ int CArduinoDA::Initialize()
 
    maxChannel_ = hub->GetNumDAChannels();
 
+   if (channel_ > maxChannel_)
+   {
+      LogMessage("This DA channel exceeds the number of DA channels reported by the connected"
+         " firmware - is a DA chip compiled into the firmware, and does it match the attached hardware?", false);
+      return ERR_DA_CHANNEL_NOT_AVAILABLE;
+   }
+
    if (hub->GetDAVoltageRange(channel_, physMinV_, physMaxV_, numSteps_))
    {
       hasPhysRange_ = true;
       minV_ = physMinV_;
       if (maxV_ > physMaxV_)
          maxV_ = physMaxV_;
+   }
+
+   daSeqSupported_ = (hub->GetControllerVersionCached() >= 6);
+   if (daSeqSupported_)
+   {
+      daMaxSeqLength_ = (long) hub->GetMaxDASequenceLength();
+      CPropertyAction* pSeqAct = new CPropertyAction(this, &CArduinoDA::OnSequence);
+      int seqRet = CreateProperty("Sequence", g_On, MM::String, false, pSeqAct);
+      if (seqRet != DEVICE_OK)
+         return seqRet;
+      AddAllowedValue("Sequence", g_On);
+      AddAllowedValue("Sequence", g_Off);
    }
 
    // set property list
@@ -1397,6 +1445,147 @@ int CArduinoDA::WriteSignal(double volts)
    return WriteToPort(value);
 }
 
+int CArduinoDA::IsDASequenceable(bool& isSequenceable) const
+{
+   isSequenceable = daSeqSupported_ && sequenceOn_;
+   return DEVICE_OK;
+}
+
+int CArduinoDA::GetDASequenceMaxLength(long& nrEvents) const
+{
+   nrEvents = daMaxSeqLength_;
+   return DEVICE_OK;
+}
+
+int CArduinoDA::ClearDASequence()
+{
+   sequence_.clear();
+   return DEVICE_OK;
+}
+
+int CArduinoDA::AddToDASequence(double voltage)
+{
+   if ((long) sequence_.size() >= daMaxSeqLength_)
+      return DEVICE_SEQUENCE_TOO_LARGE;
+   sequence_.push_back(voltage);
+   return DEVICE_OK;
+}
+
+int CArduinoDA::SendDASequence()
+{
+   CArduinoHub* hub = static_cast<CArduinoHub*>(GetParentHub());
+   if (!hub || !hub->IsPortAvailable())
+      return ERR_NO_PORT_SET;
+
+   double refMin = hasPhysRange_ ? physMinV_ : minV_;
+   double refMax = hasPhysRange_ ? physMaxV_ : maxV_;
+   double span = refMax - refMin;
+
+   std::vector<unsigned char> payload;
+   payload.reserve(sequence_.size() * 2);
+   for (size_t i = 0; i < sequence_.size(); i++)
+   {
+      long value = (span > 0.0) ? (long) ((sequence_[i] - refMin) / span * numSteps_) : 0;
+      if (value < 0) value = 0;
+      if (value > (long) numSteps_) value = (long) numSteps_;
+      payload.push_back((unsigned char) (value / 256L));
+      payload.push_back((unsigned char) (value & 255));
+   }
+
+   const std::lock_guard<std::mutex> lock(hub->GetLock());
+   hub->PurgeComPortH();
+
+   unsigned char header[4];
+   header[0] = 38;
+   header[1] = (unsigned char) (channel_ - 1);   // 0-based wire channel
+   unsigned int count = (unsigned int) sequence_.size();
+   header[2] = (unsigned char) ((count >> 8) & 0xFF);
+   header[3] = (unsigned char) (count & 0xFF);
+   int ret = hub->WriteToComPortH(header, 4);
+   if (ret != DEVICE_OK) return ret;
+
+   if (!payload.empty())
+   {
+      ret = hub->WriteToComPortH(payload.data(), (unsigned) payload.size());
+      if (ret != DEVICE_OK) return ret;
+   }
+
+   MM::MMTime startTime = GetCurrentMMTime();
+   const unsigned int nrBytes = 4;
+   unsigned long bytesRead = 0;
+   unsigned char answer[nrBytes] = {0, 0, 0, 0};
+   while ((bytesRead < nrBytes) && ((GetCurrentMMTime() - startTime).getMsec() < 2500)) {
+      unsigned long br;
+      ret = hub->ReadFromComPortH(answer + bytesRead, nrBytes - bytesRead, br);
+      if (ret != DEVICE_OK) return ret;
+      bytesRead += br;
+   }
+   if (answer[0] != 38 || answer[1] != (unsigned char) (channel_ - 1))
+      return ERR_COMMUNICATION;
+
+   unsigned int storedCount = (((unsigned int) answer[2]) << 8) | answer[3];
+   if (storedCount != count)
+      return ERR_DA_SEQUENCE_UPLOAD_FAILED;   // firmware rejected, truncated, or timed out the upload
+
+   return DEVICE_OK;
+}
+
+int CArduinoDA::StartDASequence()
+{
+   CArduinoHub* hub = static_cast<CArduinoHub*>(GetParentHub());
+   if (!hub || !hub->IsPortAvailable())
+      return ERR_NO_PORT_SET;
+
+   const std::lock_guard<std::mutex> lock(hub->GetLock());
+   hub->PurgeComPortH();
+   unsigned char command[1] = { 39 };
+   int ret = hub->WriteToComPortH(command, 1);
+   if (ret != DEVICE_OK) return ret;
+
+   MM::MMTime startTime = GetCurrentMMTime();
+   unsigned long bytesRead = 0;
+   unsigned char answer[1] = {0};
+   while ((bytesRead < 1) && ((GetCurrentMMTime() - startTime).getMsec() < 250)) {
+      unsigned long br;
+      ret = hub->ReadFromComPortH(answer, 1, br);
+      if (ret != DEVICE_OK) return ret;
+      bytesRead += br;
+   }
+   if (answer[0] != 39)
+      return ERR_COMMUNICATION;
+   return DEVICE_OK;
+}
+
+int CArduinoDA::StopDASequence()
+{
+   CArduinoHub* hub = static_cast<CArduinoHub*>(GetParentHub());
+   if (!hub || !hub->IsPortAvailable())
+      return ERR_NO_PORT_SET;
+
+   const std::lock_guard<std::mutex> lock(hub->GetLock());
+   unsigned char command[1] = { 43 };
+   int ret = hub->WriteToComPortH(command, 1);
+   if (ret != DEVICE_OK) return ret;
+
+   MM::MMTime startTime = GetCurrentMMTime();
+   const unsigned int nrBytes = 2;
+   unsigned long bytesRead = 0;
+   unsigned char answer[nrBytes] = {0, 0};
+   while ((bytesRead < nrBytes) && ((GetCurrentMMTime() - startTime).getMsec() < 250)) {
+      unsigned long br;
+      ret = hub->ReadFromComPortH(answer + bytesRead, nrBytes - bytesRead, br);
+      if (ret != DEVICE_OK) return ret;
+      bytesRead += br;
+   }
+   if (answer[0] != 43)
+      return ERR_COMMUNICATION;
+
+   std::ostringstream os;
+   os << "DA sequence had " << (int) answer[1] << " transitions";
+   LogMessage(os.str().c_str(), false);
+   return DEVICE_OK;
+}
+
 int CArduinoDA::SetSignal(double volts)
 {
    volts_ = volts;
@@ -1439,6 +1628,39 @@ int CArduinoDA::OnVolts(MM::PropertyBase* pProp, MM::ActionType eAct)
       pProp->Get(volts);
       return SetSignal(volts);
    }
+   else if (eAct == MM::IsSequenceable)
+   {
+      if (daSeqSupported_ && sequenceOn_)
+         pProp->SetSequenceable(daMaxSeqLength_);
+      else
+         pProp->SetSequenceable(0);
+   }
+   else if (eAct == MM::AfterLoadSequence)
+   {
+      std::vector<std::string> seq = pProp->GetSequence();
+      if ((long) seq.size() > daMaxSeqLength_)
+         return DEVICE_SEQUENCE_TOO_LARGE;
+
+      ClearDASequence();
+      for (unsigned int i = 0; i < seq.size(); i++)
+      {
+         std::istringstream is(seq[i]);
+         double v;
+         is >> v;
+         int ret = AddToDASequence(v);
+         if (ret != DEVICE_OK)
+            return ret;
+      }
+      return SendDASequence();
+   }
+   else if (eAct == MM::StartSequence)
+   {
+      return StartDASequence();
+   }
+   else if (eAct == MM::StopSequence)
+   {
+      return StopDASequence();
+   }
 
    return DEVICE_OK;
 }
@@ -1473,6 +1695,21 @@ int CArduinoDA::OnChannel(MM::PropertyBase* pProp, MM::ActionType eAct)
       pProp->Get(channel);
       if (channel >=1 && ( (unsigned) channel <=maxChannel_) )
          channel_ = channel;
+   }
+   return DEVICE_OK;
+}
+
+int CArduinoDA::OnSequence(MM::PropertyBase* pProp, MM::ActionType eAct)
+{
+   if (eAct == MM::BeforeGet)
+   {
+      pProp->Set(sequenceOn_ ? g_On : g_Off);
+   }
+   else if (eAct == MM::AfterSet)
+   {
+      std::string state;
+      pProp->Get(state);
+      sequenceOn_ = (state == g_On);
    }
    return DEVICE_OK;
 }

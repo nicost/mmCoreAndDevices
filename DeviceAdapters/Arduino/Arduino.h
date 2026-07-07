@@ -35,6 +35,8 @@
 #define ERR_COMMUNICATION 107
 #define ERR_NO_PORT_SET 108
 #define ERR_VERSION_MISMATCH 109
+#define ERR_DA_CHANNEL_NOT_AVAILABLE 110
+#define ERR_DA_SEQUENCE_UPLOAD_FAILED 111
 
 class ArduinoInputMonitorThread;
 class CArduinoMagnifier;
@@ -62,6 +64,7 @@ public:
    unsigned int GetMaxNumPatterns() {
       return maxNumPatterns_;
    };
+   unsigned int GetMaxDASequenceLength() { return maxDASeqLength_; }
    unsigned int GetNumDAChannels() { return numDAChannels_; }
    unsigned int GetNumDigitalPins() { return numDigitalPins_; }
    bool GetDAVoltageRange(unsigned channel /*1-based*/, double& minV, double& maxV, unsigned long& numSteps);
@@ -97,6 +100,7 @@ private:
    int version_;
    long extendedVersion_;
    unsigned int maxNumPatterns_;
+   unsigned int maxDASeqLength_;
    unsigned int numDAChannels_;
    unsigned int numDigitalPins_;
    // indexed 1-based (index 0 unused), sized g_MaxDAChannels+1, matches channel_ numbering
@@ -214,13 +218,20 @@ public:
    int GetSignal(double& volts) {volts_ = volts; return DEVICE_UNSUPPORTED_COMMAND;}     
    int GetLimits(double& minVolts, double& maxVolts) {minVolts = minV_; maxVolts = maxV_; return DEVICE_OK;}
    
-   int IsDASequenceable(bool& isSequenceable) const {isSequenceable = false; return DEVICE_OK;}
+   int IsDASequenceable(bool& isSequenceable) const;
+   int GetDASequenceMaxLength(long& nrEvents) const;
+   int StartDASequence();
+   int StopDASequence();
+   int ClearDASequence();
+   int AddToDASequence(double voltage);
+   int SendDASequence();
 
    // action interface
    // ----------------
    int OnVolts(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnMaxVolt(MM::PropertyBase* pProp, MM::ActionType eAct);
    int OnChannel(MM::PropertyBase* pProp, MM::ActionType eAct);
+   int OnSequence(MM::PropertyBase* pProp, MM::ActionType eAct);
 
 private:
    int WriteToPort(unsigned long lnValue);
@@ -240,6 +251,10 @@ private:
    double physMaxV_;
    bool hasPhysRange_;
    unsigned long numSteps_;
+   bool sequenceOn_;              // user opt-in, "Sequence" property (On/Off)
+   bool daSeqSupported_;          // true if firmware version >= 6
+   long daMaxSeqLength_;          // per-channel max sequence length (from firmware command 37)
+   std::vector<double> sequence_; // pending sequence being built via Clear/AddToDASequence
 };
 
 class CArduinoInput : public CGenericBase<CArduinoInput>  
