@@ -20,6 +20,9 @@
 
 #pragma once
 
+#include <cassert>
+#include <exception>
+
 #ifdef _WIN32
    #define WIN32_LEAN_AND_MEAN
    #include <windows.h>
@@ -29,46 +32,97 @@
 
 /**
  * @brief Base class for threads in MM devices.
+ *
+ * @attention New code should use std::thread instead.
  */
 class MMDeviceThreadBase
 {
 public:
-   MMDeviceThreadBase() : thread_(0) {}
-   virtual ~MMDeviceThreadBase() {}
+   MMDeviceThreadBase() {}
 
-   virtual int svc() = 0;
-
-   virtual int activate()
+   virtual ~MMDeviceThreadBase()
    {
+      // Detaching on destruction may not be the ideal design, but the only one
+      // possible given previous behavior (which leaked the handle).
+      if (joinable_)
+      {
+#ifdef _WIN32
+         CloseHandle(thread_);
+#else
+         pthread_detach(thread_);
+#endif
+      }
+   }
+
+   // Cannot copy a thread
+   MMDeviceThreadBase(const MMDeviceThreadBase&) = delete;
+   MMDeviceThreadBase& operator=(const MMDeviceThreadBase&) = delete;
+
+   // We also cannot safely support move because the thread calls svc() by
+   // reference.
+   MMDeviceThreadBase(MMDeviceThreadBase&&) = delete;
+   MMDeviceThreadBase& operator=(MMDeviceThreadBase&&) = delete;
+
+   /**
+    * @brief This function is called on the new thread.
+    *
+    * The return value is ignored.
+    */
+   virtual int svc() = 0;
+   // Note: On Windows the return value theoretically can be retrieved using
+   // GetExitCodeThread(), but only if you have the thread handle or ID, which
+   // we don't expose (hence "ignored").
+
+   void activate()
+   {
+      // We do not disallow reusing the thread object.
+      if (joinable_)
+      {
+#ifdef _WIN32
+         CloseHandle(thread_);
+#else
+         pthread_detach(thread_);
+#endif
+      }
+
+      bool ok{};
 #ifdef _WIN32
       DWORD id;
       thread_ = CreateThread(NULL, 0, ThreadProc, this, 0, &id);
+      ok = thread_ != NULL;
 #else
-      pthread_create(&thread_, NULL, ThreadProc, this);
+      ok = pthread_create(&thread_, NULL, ThreadProc, this) == 0;
 #endif
-      return 0; // TODO: return thread id
+      joinable_ = ok;
+      // TODO We have no way to report creation error. Probably should terminate.
    }
 
    void wait()
    {
+      assert(joinable_);
+      if (!joinable_)
+         std::terminate();
+
 #ifdef _WIN32
       WaitForSingleObject(thread_, INFINITE);
+      CloseHandle(thread_);
 #else
       pthread_join(thread_, NULL);
 #endif
+      joinable_ = false;
    }
 
 private:
-   // Forbid copying
-   MMDeviceThreadBase(const MMDeviceThreadBase&);
-   MMDeviceThreadBase& operator=(const MMDeviceThreadBase&);
-
 #ifdef _WIN32
    HANDLE
 #else
    pthread_t
 #endif
-   thread_;
+   thread_{};
+
+   // pthread_t has no "empty" value, so we must keep a separate flag.
+   bool joinable_ = false;
+
 
    static
 #ifdef _WIN32
