@@ -180,8 +180,6 @@ public:
    MMThreadGuard(MMThreadGuard&&) = delete;
    MMThreadGuard& operator=(MMThreadGuard&&) = delete;
 
-   bool isLocked() { return lock_ != nullptr; }
-
 private:
    MMThreadLock* lock_;
 };
