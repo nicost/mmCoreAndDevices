@@ -88,6 +88,9 @@ private:
 
 /**
  * @brief Critical section lock.
+ *
+ * @attention New code should use std::mutex or std::recursive_mutex instead
+ * (note that MMThreadLock is recursive).
  */
 class MMThreadLock
 {
@@ -114,6 +117,11 @@ public:
 #endif
    }
 
+   MMThreadLock(const MMThreadLock&) = delete;
+   MMThreadLock& operator=(const MMThreadLock&) = delete;
+   MMThreadLock(MMThreadLock&&) = delete;
+   MMThreadLock& operator=(MMThreadLock&&) = delete;
+
    void Lock()
    {
 #ifdef _WIN32
@@ -133,10 +141,6 @@ public:
    }
 
 private:
-   // Forbid copying
-   MMThreadLock(const MMThreadLock&);
-   MMThreadLock& operator=(const MMThreadLock&);
-
 #ifdef _WIN32
    CRITICAL_SECTION
 #else
@@ -145,6 +149,12 @@ private:
    lock_;
 };
 
+
+/**
+ * @brief RAII object to acquire and auto-release MMThreadLock.
+ *
+ * @attention New code should use std::lock_guard instead.
+ */
 class MMThreadGuard
 {
 public:
@@ -155,22 +165,23 @@ public:
 
    MMThreadGuard(MMThreadLock* lock) : lock_(lock)
    {
-      if (lock != 0)
+      if (lock != nullptr)
          lock_->Lock();
    }
 
-   bool isLocked() {return lock_ == 0 ? false : true;}
-
    ~MMThreadGuard()
    {
-      if (lock_ != 0)
+      if (lock_ != nullptr)
          lock_->Unlock();
    }
 
-private:
-   // Forbid copying
-   MMThreadGuard(const MMThreadGuard&);
-   MMThreadGuard& operator=(const MMThreadGuard&);
+   MMThreadGuard(const MMThreadGuard&) = delete;
+   MMThreadGuard& operator=(const MMThreadGuard&) = delete;
+   MMThreadGuard(MMThreadGuard&&) = delete;
+   MMThreadGuard& operator=(MMThreadGuard&&) = delete;
 
+   bool isLocked() { return lock_ != nullptr; }
+
+private:
    MMThreadLock* lock_;
 };
