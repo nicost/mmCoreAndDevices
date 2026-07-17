@@ -20,8 +20,10 @@
 
 #pragma once
 
+#include <mutex>
 #include <thread>
 
+// TODO: These includes are no longer used, but adapter code depends on them.
 #ifdef _WIN32
    #define WIN32_LEAN_AND_MEAN
    #include <windows.h>
@@ -95,28 +97,10 @@ private:
 class MMThreadLock
 {
 public:
-   MMThreadLock()
-   {
-#ifdef _WIN32
-      InitializeCriticalSection(&lock_);
-#else
-      pthread_mutexattr_t a;
-      pthread_mutexattr_init(&a);
-      pthread_mutexattr_settype(&a, PTHREAD_MUTEX_RECURSIVE);
-      pthread_mutex_init(&lock_, &a);
-      pthread_mutexattr_destroy(&a);
-#endif
-   }
+   MMThreadLock() = default;
 
-   ~MMThreadLock()
-   {
-#ifdef _WIN32
-      DeleteCriticalSection(&lock_);
-#else
-      pthread_mutex_destroy(&lock_);
-#endif
-   }
-
+   // Disallow moving because we always did and no reason to newly allow.
+   ~MMThreadLock() = default;
    MMThreadLock(const MMThreadLock&) = delete;
    MMThreadLock& operator=(const MMThreadLock&) = delete;
    MMThreadLock(MMThreadLock&&) = delete;
@@ -124,29 +108,16 @@ public:
 
    void Lock()
    {
-#ifdef _WIN32
-      EnterCriticalSection(&lock_);
-#else
-      pthread_mutex_lock(&lock_);
-#endif
+      mutex_.lock();
    }
 
    void Unlock()
    {
-#ifdef _WIN32
-      LeaveCriticalSection(&lock_);
-#else
-      pthread_mutex_unlock(&lock_);
-#endif
+      mutex_.unlock();
    }
 
 private:
-#ifdef _WIN32
-   CRITICAL_SECTION
-#else
-   pthread_mutex_t
-#endif
-   lock_;
+   std::recursive_mutex mutex_;
 };
 
 
