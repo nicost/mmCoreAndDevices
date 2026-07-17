@@ -20,8 +20,7 @@
 
 #pragma once
 
-#include <cassert>
-#include <exception>
+#include <thread>
 
 #ifdef _WIN32
    #define WIN32_LEAN_AND_MEAN
@@ -43,15 +42,9 @@ public:
    virtual ~MMDeviceThreadBase()
    {
       // Detaching on destruction may not be the ideal design, but the only one
-      // possible given previous behavior (which leaked the handle).
-      if (joinable_)
-      {
-#ifdef _WIN32
-         CloseHandle(thread_);
-#else
-         pthread_detach(thread_);
-#endif
-      }
+      // possible given previous behavior (which leaked the native handle).
+      if (thread_.joinable())
+         thread_.detach();
    }
 
    // Cannot copy a thread
@@ -69,77 +62,28 @@ public:
     * The return value is ignored.
     */
    virtual int svc() = 0;
-   // Note: On Windows the return value theoretically can be retrieved using
-   // GetExitCodeThread(), but only if you have the thread handle or ID, which
-   // we don't expose (hence "ignored").
 
    void activate()
    {
-      // We do not disallow reusing the thread object.
-      if (joinable_)
-      {
-#ifdef _WIN32
-         CloseHandle(thread_);
-#else
-         pthread_detach(thread_);
-#endif
-      }
-
-      bool ok{};
-#ifdef _WIN32
-      DWORD id;
-      thread_ = CreateThread(NULL, 0, ThreadProc, this, 0, &id);
-      ok = thread_ != NULL;
-#else
-      ok = pthread_create(&thread_, NULL, ThreadProc, this) == 0;
-#endif
-      joinable_ = ok;
-      // TODO We have no way to report creation error. Probably should terminate.
+      if (thread_.joinable())
+         thread_.detach();
+      thread_ = std::thread([this]() { (void)svc(); });
+      // Note: failure to create the thread will throw std::system_error, but
+      // that only happens upon resource exhaustion (normally rare; akin to
+      // std::bad_alloc). Most callers do not handle this, but terminating with
+      // an uncaught exception is preferable to silently continuing (as we
+      // previously did).
    }
 
    void wait()
    {
-      assert(joinable_);
-      if (!joinable_)
-         std::terminate();
-
-#ifdef _WIN32
-      WaitForSingleObject(thread_, INFINITE);
-      CloseHandle(thread_);
-#else
-      pthread_join(thread_, NULL);
-#endif
-      joinable_ = false;
+      // Note: joining a non-joinable thread (a programming error) will throw
+      // std::system_error.
+      thread_.join();
    }
 
 private:
-#ifdef _WIN32
-   HANDLE
-#else
-   pthread_t
-#endif
-   thread_{};
-
-   // pthread_t has no "empty" value, so we must keep a separate flag.
-   bool joinable_ = false;
-
-
-   static
-#ifdef _WIN32
-   DWORD WINAPI
-#else
-   void*
-#endif
-   ThreadProc(void* param)
-   {
-      MMDeviceThreadBase* pThrObj = (MMDeviceThreadBase*) param;
-#ifdef _WIN32
-      return pThrObj->svc();
-#else
-      pThrObj->svc();
-      return (void*) 0;
-#endif
-   }
+   std::thread thread_;
 };
 
 /**
