@@ -2,6 +2,9 @@
 #include "ImgBuffer.h"              //!< base  class
 #include "DeviceThreads.h"          //!< MMThreadLock class
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 // ---------------------------Camera - API ------------------------------------
 #include "common_structs_exp.h"     //!< ABS Camera API structs
 

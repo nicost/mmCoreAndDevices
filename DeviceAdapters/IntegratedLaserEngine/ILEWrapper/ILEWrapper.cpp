@@ -8,8 +8,9 @@
 // Based off the AndorLaserCombiner adapter from Karl Hoover, UCSF
 //
 
-#ifdef WIN32
-#include <windows.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #endif
 
 #include "ALC_REV.h"
@@ -22,7 +23,7 @@
 #include "ALC_REV_ILE4Wrapper.h"
 #include "ILESDKLock.h"
 #include "../IntegratedLaserEngine.h"
-#include "../../../MMDevice/DeviceThreads.h"
+#include "DeviceThreads.h"
 #include <sstream>
 #include <exception>
 

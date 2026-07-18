@@ -25,6 +25,9 @@
 
 #include <string>
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 MODULE_API void InitializeModuleData() {
     RegisterDevice(CHROLIS_HUB_NAME,
         MM::HubDevice, 

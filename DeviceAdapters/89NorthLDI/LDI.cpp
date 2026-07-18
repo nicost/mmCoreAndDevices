@@ -2,6 +2,9 @@
 
 #include <ctime>
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 const char* g_LDI_name = "89 North Laser Diode Illuminator";
 const char* g_LDI_description = "Multi-line, Solid-State Laser Illuminator";
 #define LDI_ERROR 108901

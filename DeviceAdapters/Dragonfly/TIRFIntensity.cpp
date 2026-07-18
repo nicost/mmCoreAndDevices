@@ -4,6 +4,9 @@
 #include "ConfocalMode.h"
 #include "Dragonfly.h"
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 const char* const g_TIRFIntensityPropertyName = "TIRF | Optical Feedback";
 const char* const g_TIRFIntensityLimitsReadError = "Failed to retrieve TIRF intensity limits";
 const char* const g_TIRFIntensityValueReadError = "Failed to retrieve the current TIRF intensity";

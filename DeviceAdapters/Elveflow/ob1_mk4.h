@@ -2,6 +2,9 @@
 #include "DeviceUtils.h"
 #include <vector>
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 using namespace std;
 
 class Ob1Mk4 : public CGenericBase<Ob1Mk4> {

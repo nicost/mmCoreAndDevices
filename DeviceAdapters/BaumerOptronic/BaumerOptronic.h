@@ -27,6 +27,9 @@
 #include "ImgBuffer.h"
 #include "DeviceThreads.h"
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 #pragma warning(push)
 #pragma warning(disable: 4245)
 #include "FxApi.h"

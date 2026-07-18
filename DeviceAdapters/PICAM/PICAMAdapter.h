@@ -32,11 +32,13 @@
 #include "DeviceUtils.h"
 #include "DeviceThreads.h"
 
-#ifdef WIN64
+#ifdef _WIN32
 #pragma warning(push)
 #include "picam.h"
 #include "picam_advanced.h"
 #pragma warning(pop)
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #endif
 
 #include <functional> // for mem_fn

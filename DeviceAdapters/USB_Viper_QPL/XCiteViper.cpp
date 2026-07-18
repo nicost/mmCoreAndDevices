@@ -14,9 +14,10 @@
 
 #include "XCiteViper.h"
 #include "ModuleInterface.h"
-#include "cbw.h"
 #include <sstream>
 
+#define WIN32_LEAN_AND_MEAN
+#include "cbw.h"
 
 const int BOARDREADY = 100;
 

@@ -80,7 +80,7 @@ void CLasers::WaitOnLaserWarmingUp()
   std::vector<TLaserState> vState( NumberOfLasers_ + 1, ALC_NOT_AVAILABLE );
 
   // Lasers can take up to 90 seconds to initialize
-  MM::TimeoutMs vTimerOut( MMILE_->GetCurrentTime(), 91000 );
+  MM::TimeoutMs vTimerOut( MMILE_->GetCurrentTimeMM(), 91000 );
 
   while ( true )
   {
@@ -119,7 +119,7 @@ void CLasers::WaitOnLaserWarmingUp()
       break;
     }
 
-    if ( vTimerOut.expired( MMILE_->GetCurrentTime() ) )
+    if ( vTimerOut.expired( MMILE_->GetCurrentTimeMM() ) )
     {
       MMILE_->LogMMMessage( " some lasers did not respond", false );
       break;

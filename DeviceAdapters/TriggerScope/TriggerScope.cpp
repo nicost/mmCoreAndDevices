@@ -26,7 +26,10 @@
 
 #include "ModuleInterface.h"
 
-#ifndef _WIN32
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#else
 #include <unistd.h>
 #endif
 
@@ -65,26 +68,6 @@ const char* g_Off = "Off";
 // static lock
 MMThreadLock CTriggerScopeHub::lock_;
 
-// TODO: linux entry code
-
-// windows DLL entry code
-#ifdef WIN32
-BOOL APIENTRY DllMain( HANDLE /*hModule*/, 
-                      DWORD  ul_reason_for_call, 
-                      LPVOID /*lpReserved*/
-                      )
-{
-   switch (ul_reason_for_call)
-   {
-   case DLL_PROCESS_ATTACH:
-   case DLL_THREAD_ATTACH:
-   case DLL_THREAD_DETACH:
-   case DLL_PROCESS_DETACH:
-      break;
-   }
-   return TRUE;
-}
-#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // Exported MMDevice API

@@ -24,6 +24,9 @@
 #include "ummhSerial.h"
 #include "ummhreserved.h"
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 using namespace std;
 
 // External names used by the rest of the system

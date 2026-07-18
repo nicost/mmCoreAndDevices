@@ -3,6 +3,9 @@
 #include <ModuleInterface.h>
 #include <cmath>
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 /* String constants */
 std::vector<std::string> OkolabDevice::_ports;
 bool OkolabDevice::_initialized = false;

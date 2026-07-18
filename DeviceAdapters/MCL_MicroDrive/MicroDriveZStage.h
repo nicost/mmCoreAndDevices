@@ -19,6 +19,9 @@ License:	Distributed under the BSD license.
 #include "handle_list_if.h"
 #include "HandleListType.h"
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 #define ERR_UNKNOWN_MODE         102
 #define ERR_UNKNOWN_POSITION     103
 #define ERR_NOT_VALID_INPUT      104

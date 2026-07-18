@@ -29,16 +29,9 @@
 #include "tl_camera_sdk.h"
 #include "tl_camera_sdk_load.h"
 
-#ifdef WIN32
-//...
-#endif
-
-#ifdef __APPLE__
-//...
-#endif
-
-#ifdef __linux__
-//...
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #endif
 
 #include <string>

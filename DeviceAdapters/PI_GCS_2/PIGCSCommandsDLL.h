@@ -30,6 +30,11 @@
 #include <string>
 #include <stdint.h>
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
+
 class PIController;
 
 class PIGCSCommandsDLL : public PIGCSCommands
@@ -83,7 +88,7 @@ private:
    std::string dllPrefix_;
    int ID_;
 
-#ifdef WIN32
+#ifdef _WIN32
    HMODULE module_;
 #else
    void* module_;

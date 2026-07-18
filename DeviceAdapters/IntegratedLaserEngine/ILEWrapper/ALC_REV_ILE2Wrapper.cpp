@@ -3,8 +3,9 @@
 // PROJECT:       Micro-Manager
 // SUBSYSTEM:     DeviceAdapters
 //-----------------------------------------------------------------------------
-#ifdef WIN32
-#include <windows.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #endif
 #include "ALC_REV_ILE2Wrapper.h"
 #include "ILESDKLock.h"

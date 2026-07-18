@@ -26,6 +26,11 @@
 #include "PI_GCS_2.h"
 #include "PIController.h" // error codes
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
+
 
 PIGCSCommands::PIGCSCommands ()
    : controllerError_ (PI_CNTR_NO_ERROR)

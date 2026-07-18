@@ -13,7 +13,10 @@
 #define _LASERS_H_
 
 #include "Property.h"
-#include "../../MMDevice/DeviceThreads.h"
+#include "DeviceThreads.h"
+
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 
 class IALC_REV_Laser2;
 class IALC_REV_ILEPowerManagement;

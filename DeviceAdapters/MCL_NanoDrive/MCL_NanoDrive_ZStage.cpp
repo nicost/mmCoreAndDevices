@@ -9,6 +9,9 @@ License:	Distributed under the BSD license.
 #include <vector>
 #include <string>
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 MCL_NanoDrive_ZStage::MCL_NanoDrive_ZStage() :	
 	axis_(0),
 	calibration_(0.0),

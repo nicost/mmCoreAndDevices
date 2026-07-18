@@ -15,6 +15,9 @@
 #include "..\ILEWrapperInterface.h"
 #include <map>
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 class CALC_REV_ILEActiveBlankingManagementWrapper;
 class CALC_REV_ILEPowerManagementWrapper;
 class CALC_REV_ILEPowerManagement2Wrapper;

@@ -23,14 +23,6 @@
 #include <mutex>
 #include <thread>
 
-// TODO: These includes are no longer used, but adapter code depends on them.
-#ifdef _WIN32
-   #define WIN32_LEAN_AND_MEAN
-   #include <windows.h>
-#else
-   #include <pthread.h>
-#endif
-
 /**
  * @brief Base class for threads in MM devices.
  *
