@@ -35,6 +35,10 @@
 #include "ImgBuffer.h"
 #include "DeviceThreads.h"
 #include "ImgBuffer.h"
+
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 using namespace std;
 //////////////////////////////////////////////////////////////////////////////
 // Error codes

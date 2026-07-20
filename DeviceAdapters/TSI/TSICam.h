@@ -31,16 +31,9 @@
 #include <TsiColorCamera.h>
 #include "TsiLibrary.h"
 
-#ifdef WIN32
-//...
-#endif
-
-#ifdef __APPLE__
-//...
-#endif
-
-#ifdef linux
-//...
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #endif
 
 #include <string>

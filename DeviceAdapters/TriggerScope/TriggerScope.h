@@ -27,7 +27,6 @@
 #define _TriggerScope_H_
 
 #include "DeviceBase.h"
-#include "../Utilities/Utilities.h"
 #include <string>
 #include <map>
 #include <algorithm>

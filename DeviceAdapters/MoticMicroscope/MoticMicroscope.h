@@ -32,8 +32,12 @@
 
 #include <map>
 #include <set>
-using namespace std;
 #include "DeviceBase.h"
+
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
+using namespace std;
 
 // Error codes
 #define ERR_HUB_PATH (900)

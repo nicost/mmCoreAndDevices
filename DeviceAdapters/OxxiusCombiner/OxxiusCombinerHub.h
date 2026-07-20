@@ -13,8 +13,9 @@
 using namespace std;
 
 //For Obis
-#ifdef WIN32
-	#include <windows.h>
+#ifdef _WIN32
+   #define WIN32_LEAN_AND_MEAN
+   #include <Windows.h>
 #endif
 #include "DeviceUtils.h"
 #include <algorithm>

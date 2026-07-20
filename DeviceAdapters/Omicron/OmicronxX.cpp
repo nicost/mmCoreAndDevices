@@ -13,10 +13,12 @@
 #include "Omicron.h"
 #include "CoherentOBISDirect.h"
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 #include "OmicronDeviceDriver.h"
 #include "OmicronxXDevices.h"
 #define OMICRON_XDEVICES
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #endif
 
 #include <algorithm>

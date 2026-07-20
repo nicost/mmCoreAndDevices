@@ -28,9 +28,12 @@
 
 #include "ummhUsb.h"
 #include "../UniversalMMHubSerial/ummhreserved.h"
-#include "libusb.h"
 
 #include "CameraImageMetadata.h"
+
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include "libusb.h"
 
 using namespace MM;
 

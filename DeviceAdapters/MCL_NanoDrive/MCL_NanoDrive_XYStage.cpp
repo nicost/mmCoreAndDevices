@@ -9,6 +9,9 @@ License:	Distributed under the BSD license.
 #include <vector>
 #include <string>
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 MCL_NanoDrive_XYStage::MCL_NanoDrive_XYStage():
 	calibrationX_(0),
 	calibrationY_(0),

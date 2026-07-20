@@ -11,8 +11,9 @@
 
 #include "Omicron.h"
 
-#ifdef _WINDOWS
-#include "winuser.h"
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #endif
 
 const char* g_DeviceoldOmicronName = "Omicron";

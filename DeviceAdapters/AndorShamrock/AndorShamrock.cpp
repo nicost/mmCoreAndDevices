@@ -1,7 +1,10 @@
 #include "AndorShamrock.h"
 #include "ModuleAPIFunctions.h"
+
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 #include "ShamrockCIF.h"
-//#include "ShamrockConstants.h"
 #include <sstream>
 
 using namespace std;

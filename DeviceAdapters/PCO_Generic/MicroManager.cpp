@@ -19,12 +19,14 @@
 //                INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES.
 //
 
-#include "..\..\MMDevice/ModuleInterface.h"
+#include "MicroManager.h"
+
+#include "ModuleInterface.h"
+
 #define PCO_ERRT_H_CREATE_OBJECT
 #include "PCO_err.h"
 #include "PCO_errt.h"
 
-#include "MicroManager.h"
 #include "VersionNo.h"
 
 #if defined _WIN64

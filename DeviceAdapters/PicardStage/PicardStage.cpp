@@ -21,12 +21,16 @@
 //                CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
 //                INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES.
 
-#include <iostream>
+#include "PicardStage.h"
 
 #include "ModuleInterface.h"
+
+#include <iostream>
+
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #include "PiUsb.h"
 
-#include "PicardStage.h"
 
 using namespace std;
 

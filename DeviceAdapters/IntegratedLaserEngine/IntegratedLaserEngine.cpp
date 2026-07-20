@@ -15,6 +15,7 @@
 #include "ILEWrapper/ILEWrapper.h"
 #include "Lasers.h"
 #include "VeryLowPower.h"
+#include "MMDevice.h"
 
 
 // Properties
@@ -619,7 +620,7 @@ void CIntegratedLaserEngine::LogMMMessage( std::string Message, bool DebugOnly )
   LogMessage( Message, DebugOnly );
 }
 
-MM::MMTime CIntegratedLaserEngine::GetCurrentTime()
+MM::MMTime CIntegratedLaserEngine::GetCurrentTimeMM()
 {
   return GetCurrentMMTime();
 }

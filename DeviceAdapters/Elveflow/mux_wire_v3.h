@@ -2,6 +2,9 @@
 #include "DeviceUtils.h"
 #include <vector>
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 using namespace std;
 
 class MuxWireV3 : public CGenericBase<MuxWireV3> {

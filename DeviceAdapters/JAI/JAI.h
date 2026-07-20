@@ -26,17 +26,8 @@
 #include <DeviceThreads.h>
 #include <cstdint>
 
-#ifdef WIN32
-//...
-#endif
-
-#ifdef __APPLE__
-//...
-#endif
-
-#ifdef __linux__
-//...
-#endif
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 
 #include <string>
 #include <vector>

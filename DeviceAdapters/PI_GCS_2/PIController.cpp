@@ -27,6 +27,11 @@
 #include "PIGCSCommands.h"
 #include "PI_GCS_2.h"
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
+
 std::map<std::string, PIController*> PIController::allControllersByLabel_;
 
 PIController::PIController (const std::string& label, MM::Core* logsink, MM::Device* logdevice)

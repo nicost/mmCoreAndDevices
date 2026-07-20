@@ -12,7 +12,7 @@
 #ifndef _INTEGRATEDLASERENGINE_H_
 #define _INTEGRATEDLASERENGINE_H_
 
-#include "../../MMDevice/DeviceBase.h"
+#include "DeviceBase.h"
 #include <string>
 #include <vector>
 #include "ILEWrapperInterface.h"
@@ -85,7 +85,7 @@ public:
 
   // Helper functions
   void LogMMMessage( std::string Message, bool DebugOnly = false );
-  MM::MMTime GetCurrentTime();
+  MM::MMTime GetCurrentTimeMM();
 
   void CheckAndUpdateLasers();
   virtual void CheckAndUpdateLowPowerMode() = 0;

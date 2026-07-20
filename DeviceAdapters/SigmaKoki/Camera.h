@@ -16,6 +16,10 @@
 #include <map>
 #include <algorithm>
 #include <stdint.h>
+
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 using namespace std;
 extern const char* g_CameraDeviceName;
 #pragma endregion Prehead_Inclus

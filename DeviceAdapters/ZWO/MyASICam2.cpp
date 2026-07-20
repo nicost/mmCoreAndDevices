@@ -1,7 +1,3 @@
-#include "MyASICam2.h"
-
-#include "CameraImageMetadata.h"
-
 ///////////////////////////////////////////////////////////////////////////////
 // FILE:          CMyASICam.cpp
 // PROJECT:       Micro-Manager
@@ -26,6 +22,12 @@
 //                INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES.
 //
 
+#include "MyASICam2.h"
+
+#include "CameraImageMetadata.h"
+
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 
 
 using namespace std;
