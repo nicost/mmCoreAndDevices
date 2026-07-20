@@ -10,13 +10,13 @@ jobs:
   check-utf8-encoding:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: ./tools/check-utf8.sh
 
   check-docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Doxygen
         run: sudo apt-get install -y doxygen graphviz
 
