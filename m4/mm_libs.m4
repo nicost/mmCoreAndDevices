@@ -74,7 +74,7 @@ AC_DEFUN([MM_LIB_HIDAPI], [
 # ARAVIS_LIBS.
 #
 AC_DEFUN([MM_LIB_ARAVIS], [
-   MM_LIB_WITH_PKG_CONFIG([ARAVIS], [Aravis], [aravis-0.10], [],
+   MM_LIB_WITH_PKG_CONFIG([ARAVIS], [Aravis], [aravis-0.8], [],
       [$1], [-laravis],
       [arv.h], [arv_update_device_list],
       [$2], [$3])
