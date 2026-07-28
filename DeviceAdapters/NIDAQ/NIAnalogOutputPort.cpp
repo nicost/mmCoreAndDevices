@@ -67,6 +67,28 @@ NIAnalogOutputPort::~NIAnalogOutputPort()
 
 int NIAnalogOutputPort::Initialize()
 {
+   // See NIDAQHub::Initialize() for why this wrapper exists.
+   try
+   {
+      return InitializeImpl();
+   }
+   catch (const std::exception& e)
+   {
+      LogMessage(std::string("EXCEPTION in NIAnalogOutputPort::Initialize (port ") +
+         niPort_ + "): " + typeid(e).name() + ": " + e.what());
+      return DEVICE_ERR;
+   }
+   catch (...)
+   {
+      LogMessage("Unknown (non-standard) C++ exception in "
+         "NIAnalogOutputPort::Initialize (port " + niPort_ + ")");
+      return DEVICE_ERR;
+   }
+}
+
+
+int NIAnalogOutputPort::InitializeImpl()
+{
    if (initialized_)
       return DEVICE_OK;
 

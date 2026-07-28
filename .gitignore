@@ -76,3 +76,6 @@ test-reports/
 *.pb.cc
 *.pb.h
 bin
+
+# AI
+tmpclaude*

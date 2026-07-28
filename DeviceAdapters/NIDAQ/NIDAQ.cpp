@@ -67,33 +67,52 @@ MODULE_API void InitializeModuleData()
 }
 
 
+// Returns true if name starts with prefix, and if so stores the remainder of
+// name (the part after the prefix) in suffix.
+//
+// Using std::string::substr(pos) directly for this throws std::out_of_range
+// when pos > size(). Such an exception escaping CreateDevice() propagates
+// through MMCore and the JNI boundary and terminates the JVM, so avoid it.
+static bool SplitDeviceNamePrefix(const char* name, const char* prefix,
+   std::string& suffix)
+{
+   const size_t prefixLen = strlen(prefix);
+   const std::string nameStr(name);
+   if (nameStr.size() < prefixLen)
+      return false;
+   if (nameStr.compare(0, prefixLen, prefix) != 0)
+      return false;
+   suffix = nameStr.substr(prefixLen);
+   return true;
+}
+
+
 MODULE_API MM::Device* CreateDevice(const char* deviceName)
 {
    if (deviceName == 0)
       return 0;
 
-   if (strcmp(deviceName, g_DeviceNameNIDAQHub) == 0)
+   try
    {
-      return new NIDAQHub;
+      if (strcmp(deviceName, g_DeviceNameNIDAQHub) == 0)
+      {
+         return new NIDAQHub;
+      }
+
+      std::string port;
+      if (SplitDeviceNamePrefix(deviceName, g_DeviceNameNIDAQAOPortPrefix, port))
+         return new NIAnalogOutputPort(port);
+      if (SplitDeviceNamePrefix(deviceName, g_DeviceNameNIDAQDOPortPrefix, port))
+         return new DigitalOutputPort(port);
+      if (SplitDeviceNamePrefix(deviceName, g_DeviceNameNIDAQAIPortPrefix, port))
+         return new NIAnalogInputPort(port);
    }
-   else if (std::string(deviceName).
-      substr(0, strlen(g_DeviceNameNIDAQAOPortPrefix)) ==
-      g_DeviceNameNIDAQAOPortPrefix)
+   catch (const std::exception&)
    {
-      return new NIAnalogOutputPort(std::string(deviceName).
-         substr(strlen(g_DeviceNameNIDAQAOPortPrefix)));
-   }
-   else if (std::string(deviceName).substr(0, strlen(g_DeviceNameNIDAQDOPortPrefix)) ==
-       g_DeviceNameNIDAQDOPortPrefix)
-   {
-      return new DigitalOutputPort(std::string(deviceName).
-         substr(strlen(g_DeviceNameNIDAQDOPortPrefix)));
-   }
-   else if (std::string(deviceName).substr(0, strlen(g_DeviceNameNIDAQAIPortPrefix)) ==
-       g_DeviceNameNIDAQAIPortPrefix)
-   {
-       return new NIAnalogInputPort(std::string(deviceName).
-           substr(strlen(g_DeviceNameNIDAQAIPortPrefix)));
+      // No device object exists yet, so LogMessage() is not available here.
+      // Returning 0 makes MMCore report a normal "failed to instantiate
+      // device" error rather than letting the exception kill the process.
+      return 0;
    }
 
    return 0;
@@ -176,6 +195,29 @@ NIDAQHub::~NIDAQHub()
 
 
 int NIDAQHub::Initialize()
+{
+   // Wrapper: a C++ exception escaping Initialize() propagates through MMCore
+   // and the JNI boundary and terminates the JVM with no usable diagnostic.
+   // Catch it here, log what it was, and report a normal device error instead.
+   try
+   {
+      return InitializeImpl();
+   }
+   catch (const std::exception& e)
+   {
+      LogMessage(std::string("EXCEPTION in NIDAQHub::Initialize: ") +
+         typeid(e).name() + ": " + e.what());
+      return DEVICE_ERR;
+   }
+   catch (...)
+   {
+      LogMessage("Unknown (non-standard) C++ exception in NIDAQHub::Initialize");
+      return DEVICE_ERR;
+   }
+}
+
+
+int NIDAQHub::InitializeImpl()
 {
    if (initialized_)
       return DEVICE_OK;
