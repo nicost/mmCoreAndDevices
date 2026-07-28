@@ -29,6 +29,7 @@
 #include <boost/utility.hpp>
 
 #include <string>
+#include <typeinfo>
 #include <vector>
 
 
@@ -219,7 +220,10 @@ public:
    NIDAQHub();
    virtual ~NIDAQHub();
 
+   // Initialize() is a thin exception-catching wrapper around InitializeImpl(),
+   // which holds the actual initialization logic.
    virtual int Initialize();
+   int InitializeImpl();
    virtual int Shutdown();
 
    virtual void GetName(char* name) const;
@@ -347,7 +351,9 @@ public:
    NIAnalogOutputPort(const std::string& port);
    virtual ~NIAnalogOutputPort();
 
+   // See NIDAQHub::Initialize().
    virtual int Initialize();
+   int InitializeImpl();
    virtual int Shutdown();
 
    virtual void GetName(char* name) const;

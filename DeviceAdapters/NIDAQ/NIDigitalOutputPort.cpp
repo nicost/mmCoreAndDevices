@@ -25,6 +25,32 @@
 const int NO_INPUT_LINE = -1;
 
 
+// Parse one sequence element into an unsigned long, rejecting anything that is
+// not a complete valid number in [0, maxValue].
+//
+// std::stoul throws std::invalid_argument for non-numeric input and
+// std::out_of_range on overflow. Such an exception escaping a device adapter
+// propagates through MMCore and the JNI boundary and terminates the JVM, so it
+// must be caught here and reported as an ordinary device error instead.
+static bool ParseSequenceValue(const std::string& s, unsigned long maxValue,
+   unsigned long& result)
+{
+   try
+   {
+      size_t pos = 0;
+      const unsigned long num = std::stoul(s, &pos, 0);
+      if (pos != s.size() || num > maxValue)
+         return false;
+      result = num;
+      return true;
+   }
+   catch (const std::exception&)
+   {
+      return false;
+   }
+}
+
+
 DigitalOutputPort::DigitalOutputPort(const std::string& port) :
    ErrorTranslator(21000, 21999, &DigitalOutputPort::SetErrorText),
    niPort_(port),
@@ -295,16 +321,10 @@ int DigitalOutputPort::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
          sequence8_.clear();
          for (unsigned int i = 0; i < sequence.size(); i++)
          {
-            size_t pos;
-            unsigned long num = std::stoul(sequence[i], &pos, 0);
-
-            // Check if the entire string was used for conversion and if the number fits within uint8_t range
-            if (pos != sequence[i].size() || num > 255) {
-                // "Value out of range for uint8_t"
-                return ERR_SEQUENCE_INVALID_NUMBER;
-            }
-            uint8_t val = static_cast<uint8_t>(num);
-            sequence8_.push_back(val);
+            unsigned long num;
+            if (!ParseSequenceValue(sequence[i], 255, num))
+               return ERR_SEQUENCE_INVALID_NUMBER;
+            sequence8_.push_back(static_cast<uint8_t>(num));
          }
          GetHub()->getDOHub8()->RemoveDOPortFromSequencing(niPort_);
          return GetHub()->getDOHub8()->AddDOPortToSequencing(niPort_, sequence8_);
@@ -314,16 +334,10 @@ int DigitalOutputPort::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
          sequence16_.clear();
          for (unsigned int i = 0; i < sequence.size(); i++)
          {
-            size_t pos;
-            unsigned long num = std::stoul(sequence[i], &pos, 0);
-
-            // Check if the entire string was used for conversion and if the number fits within uint16_t range
-            if (pos != sequence[i].size() || num > 65535) {
-                // "Value out of range for uint16_t"
-                return ERR_SEQUENCE_INVALID_NUMBER;
-            }
-            uint16_t val = static_cast<uint16_t>(num);
-            sequence16_.push_back(val);
+            unsigned long num;
+            if (!ParseSequenceValue(sequence[i], 65535, num))
+               return ERR_SEQUENCE_INVALID_NUMBER;
+            sequence16_.push_back(static_cast<uint16_t>(num));
          }
          GetHub()->getDOHub16()->RemoveDOPortFromSequencing(niPort_);
          return GetHub()->getDOHub16()->AddDOPortToSequencing(niPort_, sequence16_);
@@ -333,15 +347,10 @@ int DigitalOutputPort::OnState(MM::PropertyBase* pProp, MM::ActionType eAct)
          sequence32_.clear();
          for (unsigned int i = 0; i < sequence.size(); i++)
          {
-            size_t pos;
-            unsigned long num = std::stoul(sequence[i], &pos, 0);
-
-            // Check if the entire string was used for conversion
-            if (pos != sequence[i].size()) {
-                return ERR_SEQUENCE_INVALID_NUMBER;
-            }
-            uint32_t val = static_cast<uint32_t>(num);
-            sequence32_.push_back(val);
+            unsigned long num;
+            if (!ParseSequenceValue(sequence[i], 0xFFFFFFFFUL, num))
+               return ERR_SEQUENCE_INVALID_NUMBER;
+            sequence32_.push_back(static_cast<uint32_t>(num));
          }
          GetHub()->getDOHub32()->RemoveDOPortFromSequencing(niPort_);
          return GetHub()->getDOHub32()->AddDOPortToSequencing(niPort_, sequence32_);
