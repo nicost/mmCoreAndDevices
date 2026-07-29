@@ -68,6 +68,7 @@
 #include <set>
 #include <sstream>
 #include <thread>
+#include <typeinfo>
 #include <vector>
 
 namespace mmi = mmcore::internal;
@@ -7666,6 +7667,76 @@ void CMMCore::loadSystemConfiguration(const char* fileName) MMCORE_LEGACY_THROW(
       LOG_INFO(coreLogger_) <<
          "Now rethrowing original error from system configuration loading";
       throw;
+   }
+   catch (const std::exception& e)
+   {
+      // A device adapter (or other code below us) threw a C++ standard
+      // exception. There is no SWIG typemap for these, so allowing one to
+      // escape through the JNI boundary terminates the whole JVM with an
+      // EXCEPTION_UNCAUGHT_CXX_EXCEPTION hs_err file and no usable
+      // diagnostic. Log what we know and translate to CMMError, which does
+      // have a typemap and so surfaces as a normal error to the application.
+      isLoadingSystemConfiguration_ = false;
+
+      const std::string exceptionType = typeid(e).name();
+      const std::string exceptionWhat = e.what();
+
+      LOG_ERROR(coreLogger_) <<
+         "Unhandled C++ exception while loading system configuration: " <<
+         exceptionType << ": " << exceptionWhat;
+
+      LOG_INFO(coreLogger_) <<
+         "Unloading all devices after failure to load system configuration";
+
+      try
+      {
+         unloadAllDevices();
+      }
+      catch (const CMMError& err)
+      {
+         LOG_ERROR(coreLogger_) <<
+            "Error occurred while unloading all devices: " <<
+            err.getFullMsg();
+      }
+      catch (const std::exception& err)
+      {
+         LOG_ERROR(coreLogger_) <<
+            "Unhandled C++ exception while unloading all devices: " <<
+            err.what();
+      }
+
+      throw CMMError("Unhandled C++ exception while loading system "
+            "configuration (" + exceptionType + "): " + exceptionWhat);
+   }
+   catch (...)
+   {
+      // Same rationale as above, for exceptions not derived from
+      // std::exception. We cannot say anything about the value, but turning
+      // this into a CMMError still beats terminating the process.
+      isLoadingSystemConfiguration_ = false;
+
+      LOG_ERROR(coreLogger_) <<
+         "Unhandled non-standard C++ exception while loading system "
+         "configuration";
+
+      try
+      {
+         unloadAllDevices();
+      }
+      catch (const CMMError& err)
+      {
+         LOG_ERROR(coreLogger_) <<
+            "Error occurred while unloading all devices: " <<
+            err.getFullMsg();
+      }
+      catch (...)
+      {
+         LOG_ERROR(coreLogger_) <<
+            "Unhandled exception while unloading all devices";
+      }
+
+      throw CMMError("Unhandled non-standard C++ exception while loading "
+            "system configuration");
    }
 
    postNotification(notif::SystemConfigurationLoaded{});
