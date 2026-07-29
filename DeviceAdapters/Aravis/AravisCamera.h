@@ -1,9 +1,9 @@
 /*
   Copyright 2024 Hazen Babcock
-  
+
   Redistribution and use in source and binary forms, with or without modification, 
   are permitted provided that the following conditions are met:
-  
+
   1. Redistributions of source code must retain the above copyright notice, this 
      list of conditions and the following disclaimer.
 
@@ -53,10 +53,11 @@ public:
   ~AravisCamera();
 
   // MMDevice API.
-  void GetName(char* name) const;  
+  bool Busy() { return false; }
+  void GetName(char* name) const;
   int Initialize();
   int Shutdown();
-  
+
   // MMCamera API.
   int ClearROI();
   int GetBinning() const;
@@ -69,7 +70,7 @@ public:
   unsigned GetImageHeight() const;
   unsigned GetNumberOfComponents() const;
   int GetROI(unsigned& x, unsigned& y, unsigned& xSize, unsigned& ySize);
-  int IsExposureSequenceable(bool& isSequenceable) const;  
+  int IsExposureSequenceable(bool& isSequenceable) const;
   int SetBinning(int binSize);
   void SetExposure(double exp);
   int SetROI(unsigned x, unsigned y, unsigned xSize, unsigned ySize);
@@ -102,7 +103,7 @@ public:
   void ArvPixelFormatUpdate(guint32 arvPixelFormat);
   int ArvStartSequenceAcquisition();
 
-  
+
 private:
   bool capturing;
   long counter;

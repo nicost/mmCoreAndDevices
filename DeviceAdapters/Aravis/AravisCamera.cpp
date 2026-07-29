@@ -59,7 +59,7 @@ MODULE_API void InitializeModuleData()
   uint64_t nDevices=0;
 
   // Debugging.
-  //arv_debug_enable("all:1,device");
+  // arv_debug_enable("all:1,device");
 
   // Update and get number of aravis compatible cameras.
   arv_update_device_list();
@@ -191,7 +191,6 @@ void AravisCamera::AcquisitionCallback(ArvStreamCallbackType type, ArvBuffer *cb
   }
 }
 
-
 void AravisCamera::ArvBufferUpdate(ArvBuffer *aBuffer)
 {
   int status;
@@ -201,8 +200,49 @@ void AravisCamera::ArvBufferUpdate(ArvBuffer *aBuffer)
   
   status = arv_buffer_get_status(aBuffer);
   if (status != 0){
-    printf("Error, Aravis buffer status is %d\n", status);
-    return;
+    std::stringstream msg;
+    switch (status) {
+    case ARV_BUFFER_STATUS_UNKNOWN:
+      msg << "Aravis Error, Aravis buffer status is 'UNKNOWN'";
+      LogMessage(msg.str(), false);
+      return;
+    case ARV_BUFFER_STATUS_CLEARED:
+      msg << "Aravis Error, Aravis buffer status is 'CLEARED'";
+      LogMessage(msg.str(), false);
+      return;
+    case ARV_BUFFER_STATUS_TIMEOUT:
+      msg << "Aravis Error, Aravis buffer status is 'TIMEOUT'";
+      LogMessage(msg.str(), false);
+      return;
+    case ARV_BUFFER_STATUS_MISSING_PACKETS:
+      msg << "Aravis Error, Aravis buffer status is 'MISSING PACKETS'";
+      LogMessage(msg.str(), false);
+      return;
+    case ARV_BUFFER_STATUS_WRONG_PACKET_ID:
+      msg << "Aravis Error, Aravis buffer status is 'WRONG_PACKET_ID'";
+      LogMessage(msg.str(), false);
+      return;
+    case ARV_BUFFER_STATUS_SIZE_MISMATCH:
+      msg << "Aravis Error, Aravis buffer status is 'SIZE_MISMATCH'";
+      LogMessage(msg.str(), false);
+      return;
+    case ARV_BUFFER_STATUS_FILLING:
+      msg << "Aravis Error, Aravis buffer status is 'FILLING'";
+      LogMessage(msg.str(), false);
+      return;
+    case ARV_BUFFER_STATUS_ABORTED:
+      msg << "Aravis Error, Aravis buffer status is 'ABORTED'";
+      LogMessage(msg.str(), false);
+      return;
+    case ARV_BUFFER_STATUS_PAYLOAD_NOT_SUPPORTED:
+      msg << "Aravis Error, Aravis buffer status is 'PAYLOAD_NOT_SUPPORTED'";
+      LogMessage(msg.str(), false);
+      return;
+    default:
+      msg << "Aravis Error, Aravis buffer status is 'UNKNOWN_STATUS'";
+      LogMessage(msg.str(), false);
+      return;
+    }
   }
 
   // Pixel format updates.
@@ -530,9 +570,12 @@ int AravisCamera::Initialize()
   ArvCheckError(gerror);
   ArvPixelFormatUpdate(arvPixelFormat);
 
-  // Turn off auto exposure.
-  arv_camera_set_exposure_time_auto(arv_cam, ARV_AUTO_OFF, &gerror);
-  ArvCheckError(gerror);
+  // Turn off auto exposure (if available).
+  if(arv_camera_is_exposure_auto_available(arv_cam, &gerror)){
+    ArvCheckError(gerror);
+    arv_camera_set_exposure_time_auto(arv_cam, ARV_AUTO_OFF, &gerror);
+    ArvCheckError(gerror);  
+  }
 
   // Get current exposure time.
   ArvGetExposure();
