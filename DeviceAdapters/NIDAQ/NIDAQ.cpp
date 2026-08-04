@@ -371,8 +371,12 @@ int NIDAQHub::ShutdownImpl()
 
    // Destroy both threads first, so that no worker can still be running
    // (and dereferencing this hub) while the members below are torn down.
-   DestroyMonitoringThread(mThread_);
+   //
+   // Order matters: the trace thread must go first. On exit its svc() calls
+   // hub_->FinishTrace(), which dereferences mThread_, so destroying mThread_
+   // while the trace thread is still running is a null dereference.
    DestroyMonitoringThread(tThread_);
+   DestroyMonitoringThread(mThread_);
 
    int err = StopTask(aoTask_);
 
@@ -1098,12 +1102,15 @@ std::string NIDAQHub::GetPhysicalChannelListForMeasuring(std::vector<NIAnalogInp
 int NIDAQHub::StartTrace()
 {
     measuringTrace_ = true;
+
+    // Destroy the trace thread before the input thread: a trace thread that is
+    // still running calls hub_->FinishTrace() on exit, which dereferences
+    // mThread_. (This was previously a bare "delete tThread_", which destroyed
+    // a possibly still running thread without stopping or joining it first.)
+    DestroyMonitoringThread(tThread_);
     DestroyMonitoringThread(mThread_);
     mThread_ = new InputMonitoringThread(this);
 
-    // Previously a bare "delete tThread_", which destroyed a possibly still
-    // running thread without stopping or joining it first.
-    DestroyMonitoringThread(tThread_);
     tThread_ = new TraceMonitoringThread(this);
     int err  = tThread_->Start(GetPhysicalChannelListForMeasuring(physicalAIChannels_), expectedMinVoltsIn_,
         expectedMaxVoltsIn_, (float) traceFrequency_, traceAmount_, (int) physicalAIChannels_.size());
@@ -1741,16 +1748,35 @@ void InputMonitoringThread::Join()
 }
 
 
+// Clear aiTask_ and reset the handle, for use on Start()'s error paths. The
+// task was already created there, so simply returning would leak it.
+void InputMonitoringThread::ClearTask()
+{
+    if (aiTask_ != NULL)
+    {
+        DAQmxClearTask(aiTask_);
+        aiTask_ = NULL;
+    }
+}
+
+
 int InputMonitoringThread::Start(std::string AIChannelList, float minVal, float maxVal)
 {
     stop_ = false;
     int err = DAQmxCreateTask("AnalogInputReadTask", &aiTask_);
     if (err != DEVICE_OK)
+    {
+        // DAQmx leaves the handle unspecified on failure; do not clear it.
+        aiTask_ = NULL;
         return err;
-    
+    }
+
     err = DAQmxCreateAIVoltageChan(aiTask_, AIChannelList.c_str(), "", DAQmx_Val_RSE, minVal, maxVal, DAQmx_Val_Volts, NULL);
     if (err != DEVICE_OK)
+    {
+        ClearTask();
         return err;
+    }
 
     activate();
     // Only after activate() returns without throwing is there a thread to join.
@@ -1811,42 +1837,77 @@ void TraceMonitoringThread::Join()
 }
 
 
+// See InputMonitoringThread::ClearTask(). DAQmxClearTask() also stops a task
+// that was already started, so this is valid after DAQmxStartTask() too.
+void TraceMonitoringThread::ClearTask()
+{
+    if (aiTask_ != NULL)
+    {
+        DAQmxClearTask(aiTask_);
+        aiTask_ = NULL;
+    }
+}
+
+
 int TraceMonitoringThread::Start(std::string AIChannelList, float minVal, float maxVal, float frequency, int numberOfSamples, int numberOfChannels)
 {
     stop_ = false;
     int err = DAQmxCreateTask("AnalogInputReadTask", &aiTask_);
     if (err != DEVICE_OK)
+    {
+        // DAQmx leaves the handle unspecified on failure; do not clear it.
+        aiTask_ = NULL;
         return err;
+    }
 
+    // Every error path below must clear aiTask_, which was created above.
     CSVheader_ = "Time, " + AIChannelList;
     err = DAQmxCreateAIVoltageChan(aiTask_, AIChannelList.c_str(), "", DAQmx_Val_RSE, minVal, maxVal, DAQmx_Val_Volts, NULL);
     if (err != DEVICE_OK)
+    {
+        ClearTask();
         return err;
+    }
 
     timestep_ = 1 / frequency;
     err = DAQmxSetSampClkRate(aiTask_, frequency);
     if (err != DEVICE_OK)
+    {
+        ClearTask();
         return err;
+    }
 
     err = DAQmxSetSampQuantSampMode(aiTask_, DAQmx_Val_FiniteSamps);
     if (err != DEVICE_OK)
+    {
+        ClearTask();
         return err;
+    }
 
     totalAmount_ = numberOfSamples;
     err = DAQmxSetSampQuantSampPerChan(aiTask_, numberOfSamples);
     if (err != DEVICE_OK)
+    {
+        ClearTask();
         return err;
+    }
 
     err = DAQmxSetSampTimingType(aiTask_, DAQmx_Val_SampClk);
     if (err != DEVICE_OK)
+    {
+        ClearTask();
         return err;
+    }
 
     path_ += boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time()) + ".csv";
     numberOfChannels_ = numberOfChannels;
 
     err = DAQmxStartTask(aiTask_);
     if (err != DEVICE_OK)
+    {
+        ClearTask();
         return err;
+    }
 
     activate();
     // Only after activate() returns without throwing is there a thread to join.

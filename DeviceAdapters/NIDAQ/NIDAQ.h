@@ -174,6 +174,10 @@ public:
 
 
 private:
+    // Clear aiTask_ (if any) and reset the handle. Used on Start()'s error
+    // paths, where the task has already been created.
+    void ClearTask();
+
     NIDAQHub* hub_;
 
     TaskHandle aiTask_;
@@ -200,6 +204,9 @@ public:
 
 
 private:
+    // See InputMonitoringThread::ClearTask().
+    void ClearTask();
+
     NIDAQHub* hub_;
 
     TaskHandle aiTask_;
