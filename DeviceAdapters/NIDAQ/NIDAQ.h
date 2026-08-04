@@ -165,6 +165,13 @@ public:
     int Start(std::string AIChannelList, float minVal, float maxVal);
     void Stop() { stop_ = true; }
 
+    // Join the thread, but only if it was actually started. MMDeviceThreadBase
+    // exposes no joinable(), and its wait() (== std::thread::join()) throws
+    // std::system_error when the thread was never activated, so we track that
+    // ourselves. Always use this instead of calling wait() directly.
+    void Join();
+    bool IsStarted() const { return started_; }
+
 
 private:
     NIDAQHub* hub_;
@@ -172,6 +179,8 @@ private:
     TaskHandle aiTask_;
 
     bool stop_;
+    // True only between a successful activate() and the matching Join().
+    bool started_;
 };
 
 
@@ -185,6 +194,10 @@ public:
     int Start(std::string AIChannelList, float minVal, float maxVal, float frequency, int numberOfSamples, int numberOfChannels);
     void Stop() { stop_ = true; }
 
+    // See InputMonitoringThread::Join().
+    void Join();
+    bool IsStarted() const { return started_; }
+
 
 private:
     NIDAQHub* hub_;
@@ -197,6 +210,8 @@ private:
     std::string CSVheader_;
     float timestep_;
     bool stop_;
+    // True only between a successful activate() and the matching Join().
+    bool started_;
 };
 
 // Forward declaration needed for NIDAQ hub
@@ -220,11 +235,12 @@ public:
    NIDAQHub();
    virtual ~NIDAQHub();
 
-   // Initialize() is a thin exception-catching wrapper around InitializeImpl(),
-   // which holds the actual initialization logic.
+   // Initialize() and Shutdown() are thin exception-catching wrappers around
+   // InitializeImpl() and ShutdownImpl(), which hold the actual logic.
    virtual int Initialize();
    int InitializeImpl();
    virtual int Shutdown();
+   int ShutdownImpl();
 
    virtual void GetName(char* name) const;
    virtual bool Busy() { return false; }
@@ -280,6 +296,13 @@ private:
    int StartTrace();
    int StopTrace();
    int FinishTrace();
+
+   // Stop, join (only if actually started), delete and null a monitoring
+   // thread. Safe to call when the pointer is null or the thread was never
+   // activated. Takes the pointer by reference so the caller's member is
+   // always nulled; never delete these threads by hand.
+   void DestroyMonitoringThread(InputMonitoringThread*& t);
+   void DestroyMonitoringThread(TraceMonitoringThread*& t);
 
    // Action handlers
    int OnDevice(MM::PropertyBase* pProp, MM::ActionType eAct);

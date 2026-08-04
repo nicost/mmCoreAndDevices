@@ -320,30 +320,74 @@ int NIDAQHub::InitializeImpl()
 }
 
 
+void NIDAQHub::DestroyMonitoringThread(InputMonitoringThread*& t)
+{
+   if (t == 0)
+      return;
+   t->Stop();
+   t->Join();
+   delete t;
+   t = 0;
+}
+
+
+void NIDAQHub::DestroyMonitoringThread(TraceMonitoringThread*& t)
+{
+   if (t == 0)
+      return;
+   t->Stop();
+   t->Join();
+   delete t;
+   t = 0;
+}
+
+
 int NIDAQHub::Shutdown()
+{
+   // Wrapper: see NIDAQHub::Initialize(). Shutdown() is also called from
+   // ~NIDAQHub(), where an escaping exception means immediate std::terminate.
+   try
+   {
+      return ShutdownImpl();
+   }
+   catch (const std::exception& e)
+   {
+      LogMessage(std::string("EXCEPTION in NIDAQHub::Shutdown: ") +
+         typeid(e).name() + ": " + e.what());
+      return DEVICE_ERR;
+   }
+   catch (...)
+   {
+      LogMessage("Unknown (non-standard) C++ exception in NIDAQHub::Shutdown");
+      return DEVICE_ERR;
+   }
+}
+
+
+int NIDAQHub::ShutdownImpl()
 {
    if (!initialized_)
       return DEVICE_OK;
 
-   mThread_->Stop();
-   mThread_->wait();
-   delete mThread_;
+   // Destroy both threads first, so that no worker can still be running
+   // (and dereferencing this hub) while the members below are torn down.
+   DestroyMonitoringThread(mThread_);
+   DestroyMonitoringThread(tThread_);
 
    int err = StopTask(aoTask_);
 
    physicalAOChannels_.clear();
    aoChannelSequences_.clear();
 
-   if (doHub8_ != 0)
-      delete doHub8_;
-   else if (doHub16_ != 0)
-      delete doHub16_;
-   else if (doHub32_ != 0)
-      delete  doHub32_;
-
-   tThread_->Stop();
-   tThread_->wait();
-   delete tThread_;
+   // Independent deletes: the previous if/else-if chain leaked doHub16_ and
+   // doHub32_ whenever doHub8_ was non-null, which is the normal case since
+   // InitializeImpl() allocates all three together. Deleting null is a no-op.
+   delete doHub8_;
+   doHub8_ = 0;
+   delete doHub16_;
+   doHub16_ = 0;
+   delete doHub32_;
+   doHub32_ = 0;
 
    initialized_ = false;
    return err;
@@ -964,9 +1008,7 @@ int NIDAQHub::StartAIMeasuringForPort(NIAnalogInputPort* port)
     int err;
     if (measuringTrace_)
     {
-        tThread_->Stop();
-        tThread_->wait();
-        delete tThread_;
+        DestroyMonitoringThread(tThread_);
 
         tThread_ = new TraceMonitoringThread(this);
         err = tThread_->Start(GetPhysicalChannelListForMeasuring(physicalAIChannels_), expectedMinVoltsIn_,
@@ -974,9 +1016,7 @@ int NIDAQHub::StartAIMeasuringForPort(NIAnalogInputPort* port)
     }
     else
     {
-        mThread_->Stop();
-        mThread_->wait();
-        delete mThread_;
+        DestroyMonitoringThread(mThread_);
 
         mThread_ = new InputMonitoringThread(this);
         err = mThread_->Start(GetPhysicalChannelListForMeasuring(physicalAIChannels_), expectedMinVoltsIn_, expectedMaxVoltsIn_);
@@ -998,9 +1038,7 @@ int NIDAQHub::StopAIMeasuringForPort(NIAnalogInputPort* port)
 
             if (measuringTrace_)
             {
-                tThread_->Stop();
-                tThread_->wait();
-                delete tThread_;
+                DestroyMonitoringThread(tThread_);
 
                 tThread_ = new TraceMonitoringThread(this);
                 int err = DEVICE_OK;
@@ -1012,9 +1050,7 @@ int NIDAQHub::StopAIMeasuringForPort(NIAnalogInputPort* port)
             }
             else
             {
-                mThread_->Stop();
-                mThread_->wait();
-                delete mThread_;
+                DestroyMonitoringThread(mThread_);
 
                 mThread_ = new InputMonitoringThread(this);
 
@@ -1062,11 +1098,12 @@ std::string NIDAQHub::GetPhysicalChannelListForMeasuring(std::vector<NIAnalogInp
 int NIDAQHub::StartTrace()
 {
     measuringTrace_ = true;
-    mThread_->Stop();
-    mThread_->wait();
+    DestroyMonitoringThread(mThread_);
+    mThread_ = new InputMonitoringThread(this);
 
-
-    delete tThread_;
+    // Previously a bare "delete tThread_", which destroyed a possibly still
+    // running thread without stopping or joining it first.
+    DestroyMonitoringThread(tThread_);
     tThread_ = new TraceMonitoringThread(this);
     int err  = tThread_->Start(GetPhysicalChannelListForMeasuring(physicalAIChannels_), expectedMinVoltsIn_,
         expectedMaxVoltsIn_, (float) traceFrequency_, traceAmount_, (int) physicalAIChannels_.size());
@@ -1077,12 +1114,12 @@ int NIDAQHub::StartTrace()
 
 int NIDAQHub::StopTrace()
 {
-    tThread_->Stop();
-    tThread_->wait();
+    DestroyMonitoringThread(tThread_);
+    tThread_ = new TraceMonitoringThread(this);
     measuringTrace_ = false;
 
-
-    delete mThread_;
+    // Previously a bare "delete mThread_" (see StartTrace()).
+    DestroyMonitoringThread(mThread_);
     mThread_ = new InputMonitoringThread(this);
     int err = DEVICE_OK;
     if (physicalAIChannels_.size() > 0)
@@ -1092,6 +1129,9 @@ int NIDAQHub::StopTrace()
 }
 
 
+// Called from TraceMonitoringThread::svc(), i.e. on the trace thread itself.
+// It must therefore never stop or join tThread_: doing so would make the trace
+// thread join itself and deadlock. Only mThread_ may be touched here.
 int NIDAQHub::FinishTrace()
 {
     measuringTrace_ = false;
@@ -1228,10 +1268,8 @@ int NIDAQHub::OnExpectedMaxVoltsIn(MM::PropertyBase* pProp, MM::ActionType eAct)
         double temp_max = 5.0;
         pProp->Get(temp_max);
         expectedMaxVoltsIn_ = (float) temp_max;
-        
-        mThread_->Stop();
-        mThread_->wait();
-        delete mThread_;
+
+        DestroyMonitoringThread(mThread_);
         mThread_ = new InputMonitoringThread(this);
         if (physicalAIChannels_.size() > 1)
             mThread_->Start(GetPhysicalChannelListForMeasuring(physicalAIChannels_), expectedMinVoltsIn_, expectedMaxVoltsIn_);
@@ -1253,9 +1291,7 @@ int NIDAQHub::OnExpectedMinVoltsIn(MM::PropertyBase* pProp, MM::ActionType eAct)
         pProp->Get(temp_min);
         expectedMinVoltsIn_ = (float) temp_min;
 
-        mThread_->Stop();
-        mThread_->wait();
-        delete mThread_;
+        DestroyMonitoringThread(mThread_);
         mThread_ = new InputMonitoringThread(this);
         if (physicalAIChannels_.size() > 1)
             mThread_->Start(GetPhysicalChannelListForMeasuring(physicalAIChannels_), expectedMinVoltsIn_, expectedMaxVoltsIn_);
@@ -1339,7 +1375,7 @@ NIDAQDOHub<Tuint>::NIDAQDOHub(NIDAQHub* hub) : diTask_(0), doTask_(0), hub_(hub)
 {
    if (typeid(Tuint) == typeid(uInt8))
       portWidth_ = 8;
-   else if (typeid(Tuint) == typeid(uInt8))
+   else if (typeid(Tuint) == typeid(uInt16))
       portWidth_ = 16;
    else if (typeid(Tuint) == typeid(uInt32))
       portWidth_ = 32;
@@ -1678,6 +1714,7 @@ template class NIDAQDOHub<uInt32>;
 
 InputMonitoringThread::InputMonitoringThread(NIDAQHub* hub) :
     stop_(false),
+    started_(false),
     aiTask_(NULL)
 {
     hub_ = hub;
@@ -1687,7 +1724,20 @@ InputMonitoringThread::InputMonitoringThread(NIDAQHub* hub) :
 InputMonitoringThread::~InputMonitoringThread()
 {
     Stop();
-    wait();
+    // Join rather than letting ~MMDeviceThreadBase detach: svc() dereferences
+    // hub_, so a detached worker outliving the hub is a use-after-free.
+    Join();
+}
+
+
+void InputMonitoringThread::Join()
+{
+    if (started_)
+    {
+        // Clear first: if wait() throws anyway, a later Join() must not retry.
+        started_ = false;
+        wait();
+    }
 }
 
 
@@ -1703,6 +1753,8 @@ int InputMonitoringThread::Start(std::string AIChannelList, float minVal, float 
         return err;
 
     activate();
+    // Only after activate() returns without throwing is there a thread to join.
+    started_ = true;
     return DEVICE_OK;
 }
 
@@ -1730,6 +1782,7 @@ int InputMonitoringThread::svc()
 
 TraceMonitoringThread::TraceMonitoringThread(NIDAQHub* hub) :
     stop_(false),
+    started_(false),
     totalAmount_(0),
     numberOfChannels_(0),
     CSVheader_("")
@@ -1742,7 +1795,19 @@ TraceMonitoringThread::TraceMonitoringThread(NIDAQHub* hub) :
 TraceMonitoringThread::~TraceMonitoringThread()
 {
     Stop();
-    wait();
+    // See ~InputMonitoringThread().
+    Join();
+}
+
+
+void TraceMonitoringThread::Join()
+{
+    if (started_)
+    {
+        // Clear first: if wait() throws anyway, a later Join() must not retry.
+        started_ = false;
+        wait();
+    }
 }
 
 
@@ -1784,6 +1849,8 @@ int TraceMonitoringThread::Start(std::string AIChannelList, float minVal, float 
         return err;
 
     activate();
+    // Only after activate() returns without throwing is there a thread to join.
+    started_ = true;
     return DEVICE_OK;
 }
 
